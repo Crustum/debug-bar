@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+      - '1.x'
+  pull_request:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testsuite:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '8.3'
+            dependencies: lowest
+          - php-version: '8.3'
+            dependencies: highest
+          - php-version: '8.4'
+            dependencies: highest
+          - php-version: '8.5'
+            dependencies: highest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, intl, sqlite3, pdo_sqlite
+        coverage: pcov
+        ini-values: apc.enable_cli = 1, zend.assertions = 1, pcov.directory = src
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.composer/cache
+        key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+
+    - name: composer install
+      run: |
+        if [[ "${{ matrix.dependencies }}" == 'lowest' ]]; then
+          composer update --prefer-lowest --prefer-stable --prefer-dist --no-progress
+        else
+          composer install --prefer-dist --no-progress
+        fi
+
+    - name: Run PHPUnit
+      run: vendor/bin/phpunit --configuration=phpunit.xml.dist
+
+  javascript:
+    name: JS Tests, Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci --no-progress
+
+    - name: Run node tests with coverage gates
+      run: npm test
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Build bundles
+      run: npm run build
+
+  cs-stan:
+    name: Coding Standard & Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        extensions: mbstring, intl, sqlite3, pdo_sqlite
+        coverage: none
+
+    - name: Cache composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.composer/cache
+        key: ${{ runner.os }}-composer-${{ hashFiles('composer.json') }}
+
+    - name: composer install
+      run: composer install --prefer-dist --no-progress
+
+    - name: Run PHP CodeSniffer
+      run: composer cs-check
+
+    - name: Run phpstan
+      run: composer stan
+
+    - name: Run rector (dry-run)
+      run: composer rector-check

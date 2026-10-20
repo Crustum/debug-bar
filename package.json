@@ -1,0 +1,36 @@
+{
+  "name": "crustum-debug-bar",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "vite build && vite build --config vite.css.config.js && vite build --config vite.shell.config.js",
+    "dev": "vite build --watch",
+    "test": "node --test --experimental-test-coverage --test-coverage-exclude=\"tests/**\" --test-coverage-exclude=\"webroot/dist/**\" --test-coverage-lines=90 --test-coverage-functions=90 --test-coverage-branches=85 tests/js/*.test.js \"tests/js/shell/*.test.js\" \"tests/js/inspectors/*.test.js\"",
+    "test:browser": "npm run build && node --test --test-concurrency=1 tests/browser/",
+    "lint": "eslint webroot/js tests/js tests/browser",
+    "lint:fix": "eslint --fix webroot/js tests/js tests/browser",
+    "format": "prettier --write webroot/js tests/js",
+    "format:check": "prettier --check webroot/js tests/js"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "tabWidth": 2,
+    "useTabs": false,
+    "endOfLine": "lf"
+  },
+  "devDependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/outfit": "^5.2.8",
+    "@tailwindcss/vite": "^4.1.11",
+    "eslint": "^10.0.0",
+    "highlight.js": "^11.11.1",
+    "playwright": "^1.64.1",
+    "prettier": "^3.8.4",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "^4.0.7",
+    "vite": "^8.0.0"
+  }
+}

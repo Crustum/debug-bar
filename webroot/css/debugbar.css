@@ -1,0 +1,2974 @@
+@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/jetbrains-mono';
+@import 'tailwindcss/theme.css' prefix(dk);
+/* utilities generate the `dk:` classes used across templates/js.
+   Without this import every `dk:` utility is dead (the structural-only look). */
+@import 'tailwindcss/utilities.css' prefix(dk) important;
+
+/* Tailwind scans Cake templates + shell JS for used utilities. */
+@source "../../templates/**/*.php";
+@source "../js/**/*.js";
+
+@theme {
+  --container-8xl: 96rem;
+  --font-sans: 'Outfit Variable', Outfit, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-mono--font-feature-settings: 'calt' 1, 'liga' 1;
+}
+
+@custom-variant dark (&:where([data-dk-theme="dark"], [data-dk-theme="dark"] *));
+
+/* Hostile-host resets: everything the shell renders lives under `#debugbar`
+ * and only `data-dk-*` attributes, `dk-*` classes and `--dk-*` variables are
+ * used, so host page styles cannot leak in or out. */
+
+#debugbar,
+#debugbar *,
+#debugbar *::before,
+#debugbar *::after {
+  box-sizing: border-box;
+}
+
+#debugbar {
+  background: transparent;
+  color: #18181b;
+  font-family: 'Outfit Variable', Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+}
+
+#debugbar[data-dk-theme='dark'] {
+  color: #f4f4f5;
+}
+
+#debugbar [hidden] {
+  display: none !important;
+}
+
+#debugbar details > summary {
+  color: inherit;
+  cursor: pointer;
+}
+
+/* cloak + per-view hidden guards so host CSS never wins filtering. */
+#debugbar [x-cloak] {
+  display: none !important;
+}
+
+#debugbar [data-dk-inspector-panel][hidden],
+#debugbar [data-dk-timeline-item][hidden],
+#debugbar [data-dk-tab-panel][hidden],
+#debugbar [data-dk-cache-entry][hidden],
+#debugbar [data-dk-log-entry][hidden] {
+  display: none !important;
+}
+
+#debugbar .dk-sr-only {
+  border-width: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+#debugbar .dk-mini-toggle {
+  align-items: center;
+  background: #d33c47;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-size: 20px;
+  font-weight: 800;
+  height: 40px;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  width: 40px;
+}
+
+#debugbar .dk-mini-toggle:hover {
+  background: #b62f3a;
+}
+
+#debugbar :where(h1, h2, h3, h4, h5, h6, p, pre, dl, dd, dt, ul, ol, menu) {
+  margin: 0;
+}
+
+#debugbar :where(ul, ol, menu) {
+  list-style: none;
+  padding: 0;
+}
+
+#debugbar :where(details, summary) {
+  margin: 0;
+}
+
+#debugbar details {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+#debugbar :where(dl, dd, dt) {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+#debugbar :where(pre, code) {
+  background: transparent;
+  color: inherit;
+  font-family: var(--dk-font-mono);
+  font-feature-settings:
+    'calt' 1,
+    'liga' 1;
+  font-variant-ligatures: contextual common-ligatures discretionary-ligatures;
+}
+
+#debugbar :where(button, input, select) {
+  letter-spacing: inherit;
+}
+
+#debugbar button,
+#debugbar input,
+#debugbar select {
+  color: inherit;
+  font: inherit;
+}
+
+#debugbar button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  height: auto;
+  margin: 0;
+  padding: 0;
+}
+
+#debugbar details[open] > summary .dk-details-chevron {
+  transform: rotate(180deg);
+}
+
+/* Shell root: transparent overlay that never intercepts host clicks except
+ * on the toolbar, the inspector and the palette. */
+#debugbar .dk-shell-root {
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 2147483000;
+}
+
+/* Toolbar shell: quiet bar pinned to an edge, draggable to 6 placements. */
+#debugbar .dk-toolbar {
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  border-right: 0;
+  background: rgb(255 255 255 / 80%);
+  backdrop-filter: blur(20px) brightness(1.1) saturate(1.25);
+  box-shadow: 0 18px 60px -18px rgb(24 24 27 / 40%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  max-width: none;
+  overflow: visible;
+  padding: 2px 8px;
+  pointer-events: auto;
+  width: 100%;
+}
+
+/* Inside the 40px host frame the toolbar menus must open upward.
+ * scoped to `data-dk-frame='bar'` — on a full page (toolbar URL opened
+ * directly) or in the expanded picker mode the downward default applies,
+ * otherwise the picker renders above the viewport and looks dead. */
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell] .dk-picker,
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell] [data-dk-theme-options],
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell] [data-dk-mobile-popover],
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell] .dk-picker,
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell] [data-dk-theme-options],
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell] [data-dk-mobile-popover] {
+  bottom: calc(100% - 4px);
+  margin-bottom: 0;
+  margin-top: 0;
+  top: auto;
+}
+
+/* Picker frame: the host grows the iframe upward, so the bar stays glued
+ * to the screen bottom and the menus above open into the free space. */
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell] {
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  right: 0;
+}
+
+/* Top-docked bars open pickers downward into the free space below: undo
+ * the bottom-dock upward flip and pin the picker frame to the top
+ * instead of the bottom. Matches `data-dk-placement^='top'`, which the
+ * boot script keeps in sync with drags, palette pins and restore. */
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell][data-dk-placement^='top'] .dk-picker,
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell][data-dk-placement^='top'] [data-dk-theme-options],
+#debugbar[data-dk-frame='bar'] [data-dk-toolbar-shell][data-dk-placement^='top'] [data-dk-mobile-popover],
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell][data-dk-placement^='top'] .dk-picker,
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell][data-dk-placement^='top'] [data-dk-theme-options],
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell][data-dk-placement^='top'] [data-dk-mobile-popover] {
+  bottom: auto;
+  margin-bottom: 0;
+  margin-top: 0px;
+  top: calc(100% + 0px);
+}
+
+#debugbar[data-dk-frame='picker'] [data-dk-toolbar-shell][data-dk-placement^='top'] {
+  bottom: auto;
+  top: 0;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-toolbar {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(9 9 11 / 90%);
+  backdrop-filter: blur(20px) brightness(0.75) saturate(1);
+  box-shadow: 0 18px 60px -18px rgb(0 0 0 / 80%);
+}
+
+#debugbar .dk-toolbar-draggable {
+  cursor: grab;
+  touch-action: none;
+  transform: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+  user-select: none;
+  will-change: transform;
+}
+
+#debugbar .dk-toolbar-draggable[data-dk-dragging='true'] {
+  cursor: grabbing;
+  transform: translate(calc(-50% + var(--dk-toolbar-drag-x, 0px)), var(--dk-toolbar-drag-y, 0px)) scale(0.985);
+  transition: none;
+}
+
+#debugbar .dk-toolbar-draggable[data-dk-rebasing='true'] {
+  transition: none;
+}
+
+#debugbar .dk-toolbar-draggable[data-dk-dragging='true'],
+#debugbar .dk-toolbar-draggable[data-dk-dragging='true'] * {
+  cursor: grabbing !important;
+}
+
+#debugbar .dk-toolbar-draggable[data-dk-drag-target^='top'][data-dk-dragging='true'] {
+  border-color: rgb(129 140 248 / 70%);
+  box-shadow: 0 -18px 60px -18px rgb(79 70 229 / 35%);
+}
+
+#debugbar .dk-toolbar-draggable[data-dk-drag-target^='bottom'][data-dk-dragging='true'] {
+  border-color: rgb(129 140 248 / 70%);
+  box-shadow: 0 18px 60px -18px rgb(79 70 229 / 35%);
+}
+
+#debugbar .dk-toolbar-center {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+#debugbar .dk-corner-toolbar {
+  align-items: center;
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 80%);
+  gap: 4px;
+  height: 56px;
+  padding: 6px;
+  width: 196px;
+  display: flex;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-corner-toolbar {
+  border-color: rgb(255 255 255 / 10%);
+  background: rgb(9 9 11 / 90%);
+}
+
+#debugbar .dk-corner-request {
+  align-items: center;
+  border-radius: 12px;
+  display: inline-flex;
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 700;
+  height: 44px;
+  justify-content: center;
+}
+
+/* Request switcher. */
+#debugbar .dk-request-switcher {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
+  position: relative;
+}
+
+#debugbar .dk-request-switcher > .dk-icon-button {
+  flex: none;
+}
+
+#debugbar .dk-request-switcher > .dk-request-trigger {
+  width: auto;
+}
+
+#debugbar .dk-request-switcher > .dk-corner-request {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#debugbar .dk-corner-request > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-header-switcher {
+  align-self: center;
+  flex: 1 1 auto;
+  max-width: 720px;
+  min-width: 0;
+}
+
+#debugbar .dk-request-trigger {
+  align-items: center;
+  border-radius: 12px;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar .dk-request-trigger:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-request-trigger:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-request-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#debugbar .dk-request-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-request-meta {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+  opacity: 1;
+  white-space: nowrap;
+}
+
+#debugbar .dk-request-meta [data-dk-current-request-status],
+#debugbar .dk-picker-option-meta [data-dk-option-status] {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#debugbar .dk-request-size {
+  color: #71717a;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-request-size {
+  color: #d4d4d8;
+}
+
+#debugbar .dk-method-tag {
+  align-items: center;
+  background: rgb(79 70 229 / 10%);
+  border-radius: 6px;
+  color: #4338ca;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-method-tag {
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+#debugbar .dk-method-tag-muted {
+  background: rgb(39 39 42 / 5%);
+  color: #52525b;
+  min-width: 48px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-method-tag-muted {
+  background: rgb(255 255 255 / 10%);
+  color: #fff;
+}
+
+#debugbar .dk-method-tag-plain {
+  background: none;
+  color: #71717a;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+#debugbar .dk-corner-request-body {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#debugbar .dk-corner-request-title {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+#debugbar .dk-corner-request-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-picker-option-body {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#debugbar .dk-picker-option-meta {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+#debugbar .dk-request-badge {
+  border-radius: 999px;
+  background: #4f46e5;
+  color: #fff;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+}
+
+#debugbar .dk-picker {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px -18px rgb(24 24 27 / 40%);
+  margin-top: 4px;
+  max-height: 256px;
+  /* Request pickers size to their longest URL instead of the narrow
+   * trigger (152px header switcher cut `/notifications/...` to noise). */
+  min-width: 100%;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 24px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px;
+  position: absolute;
+  z-index: 50;
+}
+
+/* Right-docked switchers (inspector header) open toward the viewport,
+ * pinned downward below the switcher so the list stays inside the sheet
+ * (ASIDE overflow hidden clips anything escaping above it). The 10px offset
+ * clears the header bottom border instead of hovering over its line. */
+#debugbar [data-dk-header-toolbar] .dk-picker,
+#debugbar [data-dk-corner-toolbar] .dk-picker {
+  bottom: auto;
+  right: 0;
+  top: calc(100% + 10px);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-picker {
+  background: #09090b;
+  border-color: #27272a;
+}
+
+#debugbar .dk-picker-option {
+  align-items: center;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar .dk-picker-option:hover {
+  background: rgb(79 70 229 / 8%);
+}
+
+#debugbar .dk-picker-option-label {
+  flex: 1 1 auto;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-status-dot {
+  border-radius: 999px;
+  flex: none;
+  height: 8px;
+  width: 8px;
+}
+
+#debugbar .dk-status-dot[data-dk-status-tone='good'] {
+  background: #10b981;
+}
+
+#debugbar .dk-status-dot[data-dk-status-tone='warn'] {
+  background: #f59e0b;
+}
+
+#debugbar .dk-status-dot[data-dk-status-tone='bad'] {
+  background: #ef4444;
+}
+
+#debugbar .dk-unread-dot {
+  background: #4f46e5;
+  border-radius: 999px;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+/* Status colors applied at runtime by the request switcher script. Values
+ * mirror the `dk` theme tokens so the rules stay scoped under `#debugbar`. */
+#debugbar .dk\:text-red-600 {
+  color: oklch(57.7% 0.245 27.325) !important;
+}
+
+#debugbar .dk\:text-amber-600 {
+  color: oklch(66.6% 0.179 58.318) !important;
+}
+
+#debugbar .dk\:text-sky-600 {
+  color: oklch(58.8% 0.158 241.966) !important;
+}
+
+#debugbar .dk\:text-emerald-600 {
+  color: oklch(59.6% 0.145 163.225) !important;
+}
+
+#debugbar .dk\:text-zinc-500 {
+  color: oklch(55.2% 0.016 285.938) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk\:dark\:text-red-300 {
+  color: oklch(80.8% 0.114 19.571) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk\:dark\:text-amber-300 {
+  color: oklch(87.9% 0.169 91.605) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk\:dark\:text-sky-300 {
+  color: oklch(82.8% 0.111 230.318) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk\:dark\:text-emerald-300 {
+  color: oklch(84.5% 0.143 164.978) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk\:dark\:text-zinc-400 {
+  color: oklch(70.5% 0.015 286.067) !important;
+}
+
+/* Toolbar facts. */
+#debugbar .dk-toolbar-facts {
+  align-items: stretch;
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+  min-width: 0;
+  scrollbar-width: none;
+  display: flex;
+}
+
+#debugbar .dk-toolbar-facts::-webkit-scrollbar {
+  display: none;
+}
+
+#debugbar .dk-fact {
+  align-items: center;
+  border-radius: 12px;
+  display: flex;
+  flex: none;
+  gap: 8px;
+  min-width: max-content;
+  padding: 8px 10px;
+}
+
+#debugbar button.dk-fact:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-fact:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-fact-body {
+  min-width: 0;
+}
+
+#debugbar .dk-fact-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-fact-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  max-width: 192px;
+  white-space: nowrap;
+}
+
+#debugbar .dk-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+#debugbar .dk-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Controls, popovers and menus. */
+#debugbar .dk-toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+#debugbar .dk-button-group {
+  align-items: center;
+  display: flex;
+  gap: 2px;
+}
+
+#debugbar .dk-icon-button {
+  align-items: center;
+  border-radius: 12px;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 700;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+#debugbar .dk-icon-button:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-icon-button:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-popover-anchor {
+  flex: none;
+  position: relative;
+}
+
+#debugbar .dk-popover {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 18px 60px -18px rgb(24 24 27 / 40%);
+  margin-top: 4px;
+  min-width: 144px;
+  padding: 4px;
+  position: absolute;
+  right: 0;
+  z-index: 50;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-popover {
+  background: #09090b;
+  border-color: #27272a;
+}
+
+#debugbar .dk-menu-item {
+  border-radius: 8px;
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar .dk-menu-item:hover {
+  background: rgb(79 70 229 / 8%);
+}
+
+#debugbar .dk-mobile-only {
+  display: flex;
+}
+
+#debugbar .dk-mobile-metrics {
+  align-items: center;
+  flex: none;
+  gap: 4px;
+}
+
+#debugbar .dk-mobile-metric {
+  align-items: center;
+  border-radius: 12px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  height: 44px;
+  justify-content: center;
+  padding: 0 8px;
+}
+
+#debugbar .dk-desktop-only {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-mobile-only {
+    display: none;
+  }
+
+  #debugbar .dk-desktop-only {
+    display: flex;
+  }
+}
+
+/* Inspector sheet. */
+#debugbar .dk-backdrop {
+  background: rgb(9 9 11 / 30%);
+  backdrop-filter: blur(1px);
+  inset: 0;
+  position: absolute;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+#debugbar .dk-inspector-panel {
+  background: rgb(255 255 255 / 90%);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 16px 16px 0 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: min(82vh, 780px);
+  inset-inline: 0;
+  margin-inline: auto;
+  max-height: calc(100vh - 12px);
+  max-width: 96rem;
+  overflow: hidden;
+  pointer-events: auto;
+  position: absolute;
+  width: 100%;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-panel {
+  background: rgb(9 9 11 / 90%);
+  border-color: rgb(39 39 42 / 80%);
+}
+
+#debugbar .dk-inspector-header {
+  background: #fff;
+  border-bottom: 1px solid rgb(228 228 231 / 80%);
+  flex: none;
+  overflow: visible;
+  padding: 6px;
+  position: relative;
+  z-index: 40;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-header {
+  background: #09090b;
+  border-color: rgb(39 39 42 / 80%);
+}
+
+#debugbar .dk-header-mobile {
+  align-items: stretch;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+#debugbar .dk-header-desktop {
+  align-items: stretch;
+  display: none;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-header-mobile {
+    display: none;
+  }
+
+  #debugbar .dk-header-desktop {
+    display: flex;
+  }
+}
+
+#debugbar .dk-header-facts {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  width: auto;
+}
+
+#debugbar .dk-activity-error {
+  align-items: center;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  color: #78350f;
+  display: flex;
+  font-size: 12px;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 8px 12px;
+  width: 100%;
+  flex: none;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-activity-error {
+  background: #451a03;
+  border-color: #78350f;
+  color: #fde68a;
+}
+
+#debugbar .dk-activity-message {
+  min-width: 0;
+}
+
+#debugbar .dk-button {
+  background: #fff;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-button {
+  background: #09090b;
+  border-color: #3f3f46;
+}
+
+#debugbar .dk-button-danger {
+  background: #b91c1c;
+  border-color: transparent;
+  color: #fff;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-button-danger {
+  background: #fca5a5;
+  color: #450a0a;
+}
+
+#debugbar .dk-button-outline {
+  background: transparent;
+}
+
+#debugbar .dk-inspector-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  isolation: isolate;
+  min-height: 0;
+  position: relative;
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-inspector-body {
+    flex-direction: row;
+  }
+}
+
+#debugbar .dk-inspector-nav {
+  border-right: 1px solid rgb(228 228 231 / 80%);
+  background: rgb(250 250 250 / 95%);
+  display: none;
+  flex: none;
+  flex-direction: column;
+  padding: 12px;
+  width: 210px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-nav {
+  background: rgb(24 24 27 / 60%);
+  border-color: rgb(39 39 42 / 80%);
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-inspector-nav {
+    display: flex;
+  }
+}
+
+#debugbar .dk-nav-groups {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#debugbar [data-dk-nav-group] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#debugbar [data-dk-nav-group='favorites'] {
+  flex: none;
+  max-height: 45%;
+}
+
+#debugbar [data-dk-nav-group='inspectors'] {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+#debugbar .dk-nav-heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 0;
+  opacity: 0.6;
+  padding: 4px 10px 6px;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-nav-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#debugbar .dk-nav-row {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+
+#debugbar .dk-nav-item {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+#debugbar .dk-nav-item:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-nav-item:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-nav-item[aria-current='page'] {
+  background: linear-gradient(110deg, rgb(219 234 254 / 96%), rgb(224 231 255 / 92%));
+  color: #1d4ed8;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-nav-item[aria-current='page'] {
+  background: linear-gradient(110deg, rgb(30 58 138 / 58%), rgb(49 46 129 / 52%));
+  color: #dbeafe;
+}
+
+#debugbar .dk-nav-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-nav-side {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 6px;
+}
+
+#debugbar .dk-nav-count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+#debugbar .dk-nav-attention {
+  background: #f59e0b;
+  border-radius: 999px;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+#debugbar .dk-nav-favorite {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  flex: none;
+  font-size: 14px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+#debugbar .dk-nav-favorite[aria-pressed='true'] {
+  color: #f59e0b;
+}
+
+#debugbar .dk-nav-star-outline,
+#debugbar .dk-nav-star-filled {
+  align-items: center;
+  display: inline-flex;
+}
+
+#debugbar .dk-inspector-content {
+  background: rgb(255 255 255 / 70%);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-content {
+  background: rgb(9 9 11 / 70%);
+}
+
+#debugbar .dk-inspector-heading-block {
+  padding: 16px 16px 0;
+}
+
+#debugbar .dk-inspector-heading {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+#debugbar .dk-inspector-description {
+  font-size: 14px;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+#debugbar .dk-inspector-stage {
+  min-height: 256px;
+  position: relative;
+}
+
+#debugbar .dk-inspector-loading {
+  align-items: flex-start;
+  background: rgb(255 255 255 / 85%);
+  backdrop-filter: blur(1px);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  min-height: 256px;
+  padding: 16px;
+  position: absolute;
+  z-index: 10;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-loading {
+  background: rgb(9 9 11 / 85%);
+}
+
+#debugbar .dk-loading-card {
+  align-items: center;
+  background: rgb(255 255 255 / 90%);
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 10%);
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-loading-card {
+  background: rgb(24 24 27 / 90%);
+  border-color: #27272a;
+}
+
+#debugbar .dk-loading-icon {
+  align-items: center;
+  background: #eef2ff;
+  border-radius: 8px;
+  color: #4f46e5;
+  display: grid;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  height: 32px;
+  place-items: center;
+  width: 32px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-loading-icon {
+  background: #312e81;
+  color: #c7d2fe;
+}
+
+#debugbar .dk-loading-pulse {
+  animation: dk-debug-bar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes dk-debug-bar-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+#debugbar .dk-loading-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#debugbar .dk-inspector-details {
+  transition: opacity 150ms ease-out;
+}
+
+#debugbar .dk-inspector-error {
+  background: rgb(254 242 242 / 70%);
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  margin: 16px;
+  padding: 16px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-error {
+  background: rgb(69 10 10 / 25%);
+  border-color: #450a0a;
+}
+
+#debugbar .dk-error-title {
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-error-title {
+  color: #fecaca;
+}
+
+#debugbar .dk-error-text {
+  color: rgb(153 27 27 / 80%);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-error-text {
+  color: rgb(252 165 165 / 80%);
+}
+
+#debugbar .dk-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#debugbar .dk-inspector-empty {
+  border: 1px dashed #d4d4d8;
+  border-radius: 12px;
+  font-size: 14px;
+  margin: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+#debugbar .dk-panel-section {
+  display: block;
+  padding: 16px;
+}
+
+/* Command palette. */
+#debugbar .dk-palette-backdrop {
+  background: rgb(9 9 11 / 45%);
+  backdrop-filter: blur(4px);
+  display: grid;
+  inset: 0;
+  justify-items: center;
+  padding: 12vh 12px 12px;
+  pointer-events: auto;
+  position: fixed;
+  z-index: 50;
+}
+
+#debugbar .dk-palette-dialog {
+  align-self: start;
+  background: rgb(255 255 255 / 90%);
+  backdrop-filter: blur(32px);
+  border: 1px solid rgb(255 255 255 / 70%);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%);
+  max-width: 576px;
+  overflow: hidden;
+  width: 100%;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-palette-dialog {
+  background: rgb(24 24 27 / 90%);
+  border-color: rgb(63 63 70 / 80%);
+}
+
+#debugbar .dk-palette-search-row {
+  align-items: center;
+  border-bottom: 1px solid #e4e4e7;
+  display: flex;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-palette-search-row {
+  border-color: #27272a;
+}
+
+#debugbar .dk-palette-search {
+  background: transparent;
+  border: 0;
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 500;
+  height: 56px;
+  min-width: 0;
+  outline: none;
+}
+
+#debugbar .dk-palette-search::placeholder {
+  color: #a1a1aa;
+}
+
+#debugbar .dk-kbd {
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  background: #fafafa;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 6px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-kbd {
+  background: #27272a;
+  border-color: #3f3f46;
+}
+
+#debugbar .dk-palette-list {
+  max-height: min(420px, 60vh);
+  overflow-y: auto;
+  padding: 8px;
+}
+
+#debugbar .dk-palette-command {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+#debugbar .dk-palette-command-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-palette-command-hint {
+  flex: none;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.55;
+}
+
+#debugbar .dk-palette-empty {
+  font-size: 14px;
+  padding: 32px 12px;
+  text-align: center;
+  color: #71717a;
+}
+
+#debugbar .dk-palette-footer {
+  align-items: center;
+  background: #fafafa;
+  border-top: 1px solid #e4e4e7;
+  color: #a1a1aa;
+  display: flex;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-palette-footer {
+  background: #09090b;
+  border-color: #27272a;
+}
+
+#debugbar .dk-palette-shortcut {
+  margin-left: auto;
+}
+
+/* Shared chrome helpers carried over for inspector content. */
+#debugbar .dk-inspector-active {
+  background: linear-gradient(110deg, rgba(219, 234, 254, 0.96), rgba(224, 231, 255, 0.92)) !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-active {
+  background: linear-gradient(110deg, rgba(30, 58, 138, 0.58), rgba(49, 46, 129, 0.52)) !important;
+}
+
+#debugbar .dk-inspector-active :is(.dk-inspector-label, .dk-inspector-star-outline) {
+  color: #1d4ed8 !important;
+}
+
+#debugbar .dk-inspector-active .dk-inspector-count {
+  color: rgba(30, 64, 175, 0.62) !important;
+}
+
+#debugbar[data-dk-theme='dark']
+  .dk-inspector-active
+  :is(.dk-inspector-label, .dk-inspector-star-outline) {
+  color: #dbeafe !important;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-inspector-active .dk-inspector-count {
+  color: rgba(191, 219, 254, 0.7) !important;
+}
+
+#debugbar .dk-scrollbar {
+  scrollbar-color: #d4d4d8 transparent;
+  scrollbar-width: thin;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-scrollbar {
+  scrollbar-color: #3f3f46 transparent;
+}
+
+#debugbar .dk-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+#debugbar .dk-scrollbar::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-scrollbar::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  background-clip: padding-box;
+}
+
+#debugbar .dk-code {
+  font-family: var(--dk-font-mono);
+  font-feature-settings:
+    'calt' 1,
+    'liga' 1;
+  font-variant-ligatures: contextual common-ligatures discretionary-ligatures;
+  tab-size: 2;
+}
+
+#debugbar .dk-code code {
+  background: transparent;
+  color: inherit;
+  display: block;
+  font: inherit;
+  padding: 0;
+}
+
+#debugbar .hljs-keyword,
+#debugbar .hljs-literal,
+#debugbar .hljs-selector-tag {
+  color: #6d28d9;
+}
+
+#debugbar .hljs-string,
+#debugbar .hljs-attribute,
+#debugbar .hljs-template-variable {
+  color: #15803d;
+}
+
+#debugbar .hljs-number,
+#debugbar .hljs-built_in,
+#debugbar .hljs-type {
+  color: #b45309;
+}
+
+#debugbar .hljs-title,
+#debugbar .hljs-property,
+#debugbar .hljs-variable {
+  color: #0369a1;
+}
+
+#debugbar .hljs-comment,
+#debugbar .hljs-meta {
+  color: #71717a;
+  font-style: italic;
+}
+
+#debugbar .hljs-attr {
+  color: #3f3f46;
+}
+
+#debugbar[data-dk-theme='dark'] :is(.hljs-keyword, .hljs-literal, .hljs-selector-tag) {
+  color: #c4b5fd;
+}
+
+#debugbar[data-dk-theme='dark'] :is(.hljs-string, .hljs-attribute, .hljs-template-variable) {
+  color: #86efac;
+}
+
+#debugbar[data-dk-theme='dark'] :is(.hljs-number, .hljs-built_in, .hljs-type) {
+  color: #fcd34d;
+}
+
+#debugbar[data-dk-theme='dark'] :is(.hljs-title, .hljs-property, .hljs-variable) {
+  color: #7dd3fc;
+}
+
+#debugbar[data-dk-theme='dark'] .hljs-attr {
+  color: #d4d4d8;
+}
+
+#debugbar summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #debugbar,
+  #debugbar * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0s !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* shared component kit: workspace chrome + primitives for every
+ * inspector body. Everything scoped under `#debugbar`; no host leakage. */
+
+#debugbar .dk-workspace {
+  display: block;
+  min-width: 0;
+}
+
+#debugbar .dk-workspace-list,
+#debugbar .dk-workspace-detail {
+  min-width: 0;
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-workspace[data-dk-workspace-mode='split']:has([data-dk-inspector-focus-list]) {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  #debugbar .dk-workspace-list {
+    flex: none;
+    width: min(360px, 30%);
+  }
+
+  #debugbar .dk-workspace-detail {
+    flex: 1 1 auto;
+  }
+}
+
+#debugbar .dk-workspace[data-dk-workspace-mode='focus'] {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+#debugbar .dk-workspace-focus-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+#debugbar .dk-workspace-focus-detail {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+#debugbar .dk-workspace-focus-list[hidden],
+#debugbar .dk-workspace-focus-detail[hidden] {
+  display: none;
+}
+
+#debugbar .dk-list-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 8px;
+}
+
+#debugbar .dk-list-body {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#debugbar .dk-list-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+}
+
+#debugbar .dk-search-field {
+  display: flex;
+  flex: none;
+}
+
+#debugbar .dk-search-input {
+  background: transparent;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  flex: 1 1 auto;
+  font-size: 14px;
+  min-width: 0;
+  outline: none;
+  padding: 8px 10px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-search-input {
+  border-color: #3f3f46;
+}
+
+#debugbar .dk-search-input::placeholder {
+  color: #a1a1aa;
+}
+
+#debugbar .dk-filter-tabs,
+#debugbar .dk-detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#debugbar .dk-filter-tab,
+#debugbar .dk-detail-tab {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+}
+
+#debugbar .dk-filter-tab:hover,
+#debugbar .dk-detail-tab:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-filter-tab:hover,
+#debugbar[data-dk-theme='dark'] .dk-detail-tab:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-filter-tab[aria-selected='true'],
+#debugbar .dk-detail-tab[aria-selected='true'] {
+  background: rgb(79 70 229 / 12%);
+  color: #4f46e5;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-filter-tab[aria-selected='true'],
+#debugbar[data-dk-theme='dark'] .dk-detail-tab[aria-selected='true'] {
+  background: rgb(129 140 248 / 16%);
+  color: #c7d2fe;
+}
+
+#debugbar .dk-filter-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+
+#debugbar .dk-detail-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 8px;
+}
+
+#debugbar .dk-detail-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#debugbar .dk-detail-back {
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+@media (min-width: 40rem) {
+  #debugbar .dk-detail-back {
+    display: none;
+  }
+}
+
+#debugbar .dk-detail-back:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar .dk-detail-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#debugbar .dk-detail-badges,
+#debugbar .dk-detail-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+#debugbar .dk-detail-body {
+  min-width: 0;
+}
+
+#debugbar .dk-detail-empty {
+  border: 1px dashed #d4d4d8;
+  border-radius: 12px;
+  font-size: 14px;
+  padding: 32px;
+  text-align: center;
+}
+
+#debugbar .dk-definition-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#debugbar .dk-definition-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: 12px;
+  font-size: 14px;
+}
+
+#debugbar .dk-definition-row dt {
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+#debugbar .dk-definition-row dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#debugbar .dk-evidence {
+  background: rgb(24 24 27 / 3%);
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  overflow-x: auto;
+  padding: 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-evidence {
+  background: rgb(255 255 255 / 4%);
+  border-color: #27272a;
+}
+
+#debugbar .dk-evidence pre {
+  margin: 0;
+  font-size: 12px;
+}
+
+#debugbar .dk-copy-button {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+#debugbar .dk-copy-button:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-copy-button:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar [data-dk-copy] svg {
+  transition:
+    stroke-width 150ms ease-out,
+    color 150ms ease-out;
+}
+
+#debugbar [data-dk-copy] svg.dk-copy-flash {
+  stroke-width: 2.6;
+  color: #4f46e5;
+}
+
+#debugbar[data-dk-theme='dark'] [data-dk-copy] svg.dk-copy-flash {
+  color: #a5b4fc;
+}
+
+#debugbar [data-dk-cache-clear] svg.dk-cache-flash {
+  stroke-width: 2.6;
+  color: #4f46e5;
+}
+
+#debugbar[data-dk-theme='dark'] [data-dk-cache-clear] svg.dk-cache-flash {
+  color: #a5b4fc;
+}
+
+/* Request list refresh: bold blue spin while the recent list reloads.
+ * Same feedback language as the copy flash — idle icon stays neutral,
+ * `aria-busy` (set on click, cleared after reload) owns the state. */
+#debugbar [data-dk-requests-refresh] svg {
+  transition:
+    stroke-width 150ms ease-out,
+    color 150ms ease-out;
+}
+
+@keyframes dk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+#debugbar [data-dk-requests-refresh][aria-busy='true'] svg {
+  animation: dk-spin 0.8s linear infinite;
+  stroke-width: 2.6;
+  color: #4f46e5;
+}
+
+#debugbar[data-dk-theme='dark'] [data-dk-requests-refresh][aria-busy='true'] svg {
+  color: #a5b4fc;
+}
+
+#debugbar .dk-empty-state {
+  align-items: center;
+  border: 1px dashed #d4d4d8;
+  border-radius: 12px;
+  color: #71717a;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 8px;
+  margin: 16px;
+  padding: 32px;
+  text-align: center;
+}
+
+#debugbar .dk-explanation {
+  background: rgb(79 70 229 / 6%);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-explanation {
+  background: rgb(129 140 248 / 10%);
+}
+
+#debugbar .dk-operation-badge {
+  border-radius: 999px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+}
+
+#debugbar .dk-operation-badge[data-dk-operation-tone='good'] {
+  background: rgb(16 185 129 / 14%);
+  color: #047857;
+}
+
+#debugbar .dk-operation-badge[data-dk-operation-tone='info'] {
+  background: rgb(14 165 233 / 14%);
+  color: #0369a1;
+}
+
+#debugbar .dk-operation-badge[data-dk-operation-tone='warn'] {
+  background: rgb(245 158 11 / 16%);
+  color: #b45309;
+}
+
+#debugbar .dk-operation-badge[data-dk-operation-tone='bad'] {
+  background: rgb(239 68 68 / 12%);
+  color: #b91c1c;
+}
+
+#debugbar .dk-operation-badge[data-dk-operation-tone='neutral'] {
+  background: rgb(24 24 27 / 6%);
+  color: #52525b;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-operation-badge[data-dk-operation-tone='good'] {
+  color: #6ee7b7;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-operation-badge[data-dk-operation-tone='info'] {
+  color: #7dd3fc;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-operation-badge[data-dk-operation-tone='warn'] {
+  color: #fcd34d;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-operation-badge[data-dk-operation-tone='bad'] {
+  color: #fca5a5;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-operation-badge[data-dk-operation-tone='neutral'] {
+  background: rgb(255 255 255 / 8%);
+  color: #a1a1aa;
+}
+
+#debugbar .dk-disclosure {
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-disclosure {
+  border-color: #27272a;
+}
+
+#debugbar .dk-disclosure-summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  list-style: none;
+  padding: 10px 12px;
+}
+
+#debugbar .dk-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+#debugbar .dk-disclosure-summary .dk-details-chevron,
+#debugbar .dk-disclosure-summary svg {
+  transition: transform 150ms ease-out;
+}
+
+#debugbar .dk-disclosure[open] > summary svg {
+  transform: rotate(180deg);
+}
+
+#debugbar .dk-disclosure-body {
+  border-top: 1px solid #e4e4e7;
+  padding: 12px;
+  min-width: 0;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-disclosure-body {
+  border-color: #27272a;
+}
+
+#debugbar .dk-banner {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  color: #78350f;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-banner {
+  background: #451a03;
+  border-color: #78350f;
+  color: #fde68a;
+}
+
+#debugbar .dk-source-fact {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+#debugbar .dk-source-frame {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-source-frame[data-dk-source-frame='app'] {
+  background: rgb(79 70 229 / 12%);
+  color: #4f46e5;
+}
+
+#debugbar .dk-source-frame[data-dk-source-frame='vendor'] {
+  background: rgb(24 24 27 / 6%);
+  color: #71717a;
+}
+
+#debugbar .dk-sort-heading {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-sort-heading:hover {
+  color: #4f46e5;
+}
+
+#debugbar .dk-sort-heading[aria-sort='descending']::after {
+  content: ' ↓';
+}
+
+#debugbar .dk-sort-heading[aria-sort='ascending']::after {
+  content: ' ↑';
+}
+
+/* Trusted debugger dumps (ToolbarHelper::dumpNode/dumpNodes): rich
+ * HtmlFormatter HTML renders raw — never escaped. Scoped replacement for
+ * the removed legacy dump styles. */
+#debugbar .cake-debug-output {
+  font-family: var(--dk-font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+#debugbar .cake-debug-output .cake-debug-string {
+  color: #15803d;
+}
+
+#debugbar .cake-debug-output .cake-debug-number,
+#debugbar .cake-debug-output .cake-debug-const {
+  color: #b45309;
+}
+
+#debugbar .cake-debug-output .cake-debug-class {
+  color: #0369a1;
+}
+
+#debugbar .cake-debug-output .cake-debug-property {
+  color: #3f3f46;
+}
+
+#debugbar .cake-debug-output .cake-debug-punct {
+  color: #71717a;
+}
+
+#debugbar .cake-debug-output .cake-debug-visibility,
+#debugbar .cake-debug-output .cake-debug-special {
+  color: #6d28d9;
+  font-style: italic;
+}
+
+#debugbar .cake-debug-output a.cake-debug-ref {
+  color: #4f46e5;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-string {
+  color: #86efac;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-number,
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-const {
+  color: #fcd34d;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-class {
+  color: #7dd3fc;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-property {
+  color: #d4d4d8;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-punct {
+  color: #a1a1aa;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-visibility,
+#debugbar[data-dk-theme='dark'] .cake-debug-output .cake-debug-special {
+  color: #c4b5fd;
+}
+
+#debugbar[data-dk-theme='dark'] .cake-debug-output a.cake-debug-ref {
+  color: #a5b4fc;
+}
+
+/* queries inspector: counters, multicolumn Type/Query/Time grid with
+ * slow/repeated tints, sticky heading, per-record details. */
+
+#debugbar .dk-query-summary {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+#debugbar .dk-query-total-time {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+  opacity: 0.65;
+}
+
+#debugbar .dk-query-grid {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) 4.75rem;
+  align-items: center;
+  gap: 12px;
+}
+
+#debugbar button.dk-query-row {
+  border-radius: 0;
+  cursor: pointer;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar button.dk-query-row[data-dk-slow='true'] {
+  background: rgb(254 242 242 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(254 202 202);
+}
+
+#debugbar button.dk-query-row[data-dk-repeated='true'] {
+  background: rgb(255 251 235 / 70%);
+  box-shadow: inset 0 0 0 1px rgb(253 230 138);
+}
+
+#debugbar button.dk-query-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(219 234 254 / 96%), rgb(224 231 255 / 92%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-query-row[data-dk-slow='true'] {
+  background: rgb(69 10 10 / 35%);
+  box-shadow: inset 0 0 0 1px rgb(69 10 10 / 80%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-query-row[data-dk-repeated='true'] {
+  background: rgb(69 26 3 / 35%);
+  box-shadow: inset 0 0 0 1px rgb(120 53 15 / 80%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-query-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(30 58 138 / 58%), rgb(49 46 129 / 52%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar .dk-query-type {
+  display: flex;
+  min-width: 0;
+}
+
+#debugbar .dk-model-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem 3.75rem 4rem;
+  align-items: center;
+  gap: 12px;
+}
+
+#debugbar button.dk-model-row {
+  border-radius: 0;
+  cursor: pointer;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar button.dk-model-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(219 234 254 / 96%), rgb(224 231 255 / 92%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-model-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(30 58 138 / 58%), rgb(49 46 129 / 52%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar .dk-model-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+#debugbar .dk-model-name strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-model-reloads-attention {
+  color: #b45309;
+  font-weight: 700;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-model-reloads-attention {
+  color: #fbbf24;
+}
+
+#debugbar .dk-model-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 16px 0 4px;
+}
+
+#debugbar .dk-record-table {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgb(228 228 231 / 90%);
+  margin-bottom: 8px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-record-table {
+  border-color: #27272a;
+}
+
+#debugbar .dk-record-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 5rem minmax(0, 1.5fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid rgb(228 228 231 / 90%);
+  font-size: 12px;
+  align-items: baseline;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-record-row {
+  border-color: #27272a;
+}
+
+#debugbar .dk-record-heading {
+  color: #71717a;
+  font-weight: 600;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-record-heading {
+  color: #a1a1aa;
+}
+
+#debugbar .dk-http-grid {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) 4.5rem 5rem;
+  align-items: center;
+  gap: 12px;
+}
+
+#debugbar button.dk-http-row {
+  border-radius: 0;
+  cursor: pointer;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar button.dk-http-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(219 234 254 / 96%), rgb(224 231 255 / 92%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-http-row[aria-pressed='true'] {
+  background: linear-gradient(110deg, rgb(30 58 138 / 58%), rgb(49 46 129 / 52%));
+  box-shadow: inset 0 0 0 1px rgb(129 140 248 / 70%);
+}
+
+#debugbar .dk-http-request {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+#debugbar .dk-http-request strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-http-time-head {
+  display: flex;
+  justify-content: flex-end;
+}
+
+#debugbar .dk-http-time {
+  text-align: right;
+}
+
+#debugbar .dk-http-time-slow {
+  color: #b45309;
+  font-weight: 700;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-http-time-slow {
+  color: #fbbf24;
+}
+
+#debugbar .dk-http-status-error {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-http-status-error {
+  color: #f87171;
+}
+
+#debugbar .dk-http-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+#debugbar .dk-http-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#debugbar .dk-http-title strong {
+  font-size: 14px;
+}
+
+#debugbar .dk-http-head-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+#debugbar .dk-http-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 13px;
+  margin: 12px 0;
+  align-items: baseline;
+}
+
+#debugbar .dk-http-body-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#debugbar .dk-query-sql {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  max-height: 40px;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+#debugbar .dk-query-outcome {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+#debugbar .dk-query-driver {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+#debugbar .dk-query-detail {
+  border-top: 1px solid #e4e4e7;
+  padding: 12px 0;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-query-detail {
+  border-color: #27272a;
+}
+
+#debugbar .dk-query-note {
+  color: #71717a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#debugbar .dk-query-runs {
+  margin-bottom: 8px;
+  max-width: 24rem;
+}
+
+#debugbar .dk-query-runs-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 0 0 6px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-evidence-label,
+#debugbar .dk-source-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 0;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+#debugbar .dk-evidence-label + .dk-evidence {
+  margin-top: 6px;
+}
+
+#debugbar .dk-query-connection {
+  display: inline-block;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+#debugbar .dk-query-source {
+  border-top: 1px solid #e4e4e7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-query-source {
+  border-color: #27272a;
+}
+
+#debugbar .dk-query-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#debugbar .dk-query-stack-frame {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+#debugbar .dk-query-stack-frame .dk-code {
+  overflow-wrap: anywhere;
+}
+
+#debugbar .dk-query-stack-function {
+  color: #71717a;
+  font-size: 12px;
+}
+
+#debugbar .dk-query-loading {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 8px;
+  color: #71717a;
+}
+
+#debugbar .dk-loading-dot {
+  background: #4f46e5;
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+  height: 6px;
+  width: 6px;
+}
+
+#debugbar .dk-query-explain-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+#debugbar .dk-explanation-title {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+#debugbar .dk-explanation-text {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* timeline waterfall: rows positioned by --dk-timeline-start/width
+ * percentages of the request window. */
+
+#debugbar .dk-timeline-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.5;
+  padding: 4px 10px;
+}
+
+#debugbar .dk-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#debugbar .dk-timeline-row {
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+#debugbar .dk-timeline-row:hover {
+  background: rgb(24 24 27 / 4%);
+}
+
+#debugbar[data-dk-theme='dark'] .dk-timeline-row:hover {
+  background: rgb(255 255 255 / 6%);
+}
+
+#debugbar .dk-timeline-meta {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+}
+
+#debugbar .dk-timeline-label {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#debugbar .dk-timeline-bar {
+  background: rgb(24 24 27 / 6%);
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-timeline-bar {
+  background: rgb(255 255 255 / 10%);
+}
+
+#debugbar .dk-timeline-fill {
+  background: #4f46e5;
+  border-radius: 999px;
+  display: block;
+  height: 100%;
+  margin-left: var(--dk-timeline-start, 0%);
+  width: var(--dk-timeline-width, 1%);
+}
+
+#debugbar .dk-select {
+  background: transparent;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  font-size: 14px;
+  max-width: 100%;
+  padding: 8px 10px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-select {
+  border-color: #3f3f46;
+}
+
+#debugbar .dk-list-row {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+#debugbar button.dk-list-row:hover {
+  background: rgb(24 24 27 / 5%);
+}
+
+#debugbar[data-dk-theme='dark'] button.dk-list-row:hover {
+  background: rgb(255 255 255 / 8%);
+}
+
+#debugbar .dk-validation-entry {
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-validation-entry {
+  border-color: #27272a;
+}
+
+#debugbar .dk-validation-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+#debugbar .dk-validation-table th,
+#debugbar .dk-validation-table td {
+  border: 1px solid #e4e4e7;
+  padding: 8px;
+  text-align: left;
+}
+
+#debugbar[data-dk-theme='dark'] .dk-validation-table th,
+#debugbar[data-dk-theme='dark'] .dk-validation-table td {
+  border-color: #27272a;
+}
+
+#debugbar .dk-validation-table th {
+  font-weight: 700;
+}
+
+/* SimpleGraph bar track (timer timeline ranges). Kept as-is: the helper
+ * emits `c-graph-bar` markup, only scoped paint lives here. */
+#debugbar .c-graph-bar {
+  background: rgb(24 24 27 / 6%);
+  border-radius: 999px;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+#debugbar[data-dk-theme='dark'] .c-graph-bar {
+  background: rgb(255 255 255 / 10%);
+}
+
+#debugbar .c-graph-bar__value {
+  background: #4f46e5;
+  border-radius: 999px;
+  height: 8px;
+}
+
+/* Legacy deprecations panel: sectioned lists plus the info
+ * flash. Class names stay untouched; only scoped paint is added. */
+#debugbar .c-deprecations-panel {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+#debugbar .c-deprecations-panel h3 {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+#debugbar .c-deprecations-panel .o-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#debugbar .c-deprecations-panel .o-list li {
+  background: rgb(24 24 27 / 3%);
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  padding: 8px 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .c-deprecations-panel .o-list li {
+  background: rgb(255 255 255 / 4%);
+  border-color: #27272a;
+}
+
+#debugbar .c-deprecations-panel .c-flash--info {
+  background: rgb(24 24 27 / 3%);
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+#debugbar[data-dk-theme='dark'] .c-deprecations-panel .c-flash--info {
+  background: rgb(255 255 255 / 4%);
+  border-color: #27272a;
+}
+
+/* Legacy routes rows carry a two-line name + template label, so the
+ * single-line ellipsis nav label must wrap here. */
+#debugbar [data-dk-routes-panel] .dk-nav-label {
+  white-space: normal;
+}
+
+#debugbar [data-dk-routes-panel] .dk-code {
+  overflow-wrap: anywhere;
+}
+
+/* anchor previews: placement frames shown only while dragging. */
+#debugbar [data-dk-anchor-preview] {
+  border: 2px dashed rgb(129 140 248 / 70%);
+  border-radius: 12px;
+  pointer-events: none;
+  position: fixed;
+  z-index: 2147482999;
+}
+
+#debugbar [data-dk-anchor-preview='top-left'] {
+  left: 12px;
+  top: 12px;
+  height: 56px;
+  width: min(420px, calc(100vw - 24px));
+}
+
+#debugbar [data-dk-anchor-preview='top'] {
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  height: 40px;
+  width: min(1024px, calc(100vw - 24px));
+}
+
+#debugbar [data-dk-anchor-preview='top-right'] {
+  right: 12px;
+  top: 12px;
+  height: 56px;
+  width: 196px;
+}
+
+#debugbar [data-dk-anchor-preview='bottom-left'] {
+  left: 12px;
+  bottom: 12px;
+  height: 56px;
+  width: 196px;
+}
+
+#debugbar [data-dk-anchor-preview='bottom'] {
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  height: 40px;
+  width: min(1024px, calc(100vw - 24px));
+}
+
+#debugbar [data-dk-anchor-preview='bottom-right'] {
+  right: 12px;
+  bottom: 12px;
+  height: 56px;
+  width: 196px;
+}
+
+/* Legacy generic compat (ported from debug_kit style.css).
+ * Class names stay untouched so third-party panels keep working;
+ * only scoping under #debugbar plus dark-theme paint is added. */
+#debugbar .is-hidden {
+  display: none;
+}
+
+#debugbar .u-text-right {
+  text-align: right;
+}
+
+#debugbar .u-text-center {
+  text-align: center;
+}
+
+#debugbar .u-text-left {
+  text-align: left;
+}
+
+#debugbar .c-flash {
+  position: relative;
+  padding: 10px 10px 10px 50px;
+  font-size: 14px;
+}
+
+#debugbar .c-flash:before {
+  padding: 8px;
+  line-height: 12px;
+  font-size: 20px;
+  font-weight: bold;
+  height: 12px;
+  width: 12px;
+  border-radius: 15px;
+  background-color: #fff;
+  text-align: center;
+  vertical-align: middle;
+  display: inline-block;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translate(0, -50%);
+}
+
+#debugbar .c-flash--warning {
+  background: #f2dede;
+}
+
+#debugbar .c-flash--warning:before {
+  color: #f2dede;
+  content: '!';
+}
+
+#debugbar .c-flash--info {
+  background: #d9edf7;
+}
+
+#debugbar .c-flash--info:before {
+  color: #d9edf7;
+  content: 'i';
+}
+
+#debugbar[data-dk-theme='dark'] .c-flash--warning {
+  background: rgb(127 29 29 / 40%);
+}
+
+#debugbar[data-dk-theme='dark'] .c-flash--info {
+  background: rgb(12 74 110 / 40%);
+}
+
+#debugbar .c-panel__title {
+  margin: 0;
+  background: #d33c47;
+  padding: 10px;
+  color: #fff;
+  font-weight: normal;
+}
+
+#debugbar[data-dk-theme='dark'] .c-panel__title {
+  background: rgb(153 27 27 / 60%);
+}
+
+#debugbar .c-panel__content {
+  padding: 10px;
+}
+
+#debugbar .o-help {
+  color: #666;
+  font-size: 14px;
+}
+
+#debugbar[data-dk-theme='dark'] .o-help {
+  color: #a1a1aa;
+}
+
+#debugbar .c-debug-table .cake-debug-copy {
+  position: static;
+  margin-left: 10px;
+}
+
+#debugbar .o-list {
+  list-style: disc;
+  margin: 10px 0 10px 20px;
+}
+
+#debugbar .o-list li {
+  margin: 10px 0;
+}
+
+#debugbar .o-list--deprecation-list li {
+  font-family: var(--dk-font-mono);
+}
+
+#debugbar .o-button {
+  font-size: 14px;
+  border: 1px solid #2a6496;
+  background-color: #428bca;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 #2a6496;
+  padding: 4px 10px;
+}
+
+#debugbar .o-button:active {
+  box-shadow: none;
+  position: relative;
+  top: 2px;
+}
+
+#debugbar .o-button:hover {
+  cursor: pointer;
+}
+
+#debugbar .o-checkbox label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+#debugbar .o-checkbox input {
+  vertical-align: middle;
+  margin-top: 0;
+}
+
+#debugbar .o-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgb(0 0 0 / 30%);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+#debugbar .o-loader.is-loading {
+  opacity: 1;
+  visibility: visible;
+}
+
+#debugbar .c-debug-table td {
+  font-family: var(--dk-font-mono);
+}
+
+#debugbar .c-debug-table th:nth-child(n+2),
+#debugbar .c-debug-table td:nth-child(n+2) {
+  text-align: right;
+}
+
+#debugbar .c-debug-table td:nth-child(n+2) {
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+#debugbar .c-debug-table th.u-text-left,
+#debugbar .c-debug-table td.u-text-left {
+  text-align: left;
+}
+
+#debugbar .c-debug-table .duplicate-route td {
+  background: #ffea96;
+}
+
+#debugbar .c-debug-table .highlighted td {
+  background: #e7e9fd;
+}

@@ -1,0 +1,29 @@
+includes:
+    - phpstan-baseline.neon
+    - vendor/cakedc/cakephp-phpstan/extension.neon
+
+parameters:
+    level: 8
+    paths:
+        - src
+    bootstrapFiles:
+        - tests/bootstrap.php
+    cakeDC:
+        appNamespace: Crustum\DebugBar
+    tmpDir: build/phpstan
+    ignoreErrors:
+        -
+            identifier: new.static
+            reportUnmatched: false
+        -
+            identifier: missingType.generics
+        -
+            identifier: missingType.iterableValue
+        # Test-support traits ship for host apps — usage lives outside
+        # the analysed paths (own suite + consumers).
+        -
+            message: '#Trait Crustum\\DebugBar\\TestSuite\\DebugBarAssertionsTrait is used zero times#'
+            paths:
+                - src/TestSuite/DebugBarAssertionsTrait.php
+
+services:

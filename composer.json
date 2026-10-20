@@ -1,0 +1,90 @@
+{
+    "name": "crustum/debug-bar",
+    "description": "DebugBar plugin for CakePHP",
+    "type": "cakephp-plugin",
+    "license": "MIT",
+    "keywords": [
+        "cakephp",
+        "crustum",
+        "debug-bar"
+    ],
+    "authors": [
+        {
+            "name": "Evgeny Tomenko",
+            "homepage": "https://github.com/skie"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "cakephp/cakephp": "^5.4",
+        "composer/composer": "^2.8",
+        "doctrine/sql-formatter": "^1.1.3"
+    },
+    "require-dev": {
+        "cakephp/authentication": "^3.0|^4.0",
+        "cakephp/authorization": "^3.0",
+        "cakedc/cakephp-phpstan": "^4.3",
+        "cakephp/cakephp-codesniffer": "^5.3",
+        "crustum/mcp": "^1.0",
+        "crustum/plugin-manifest": "^1.2",
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5 | ^13.0",
+        "rector/rector": "^2.7",
+        "crustum/cakephp-attribute-resolver": "^1.0"
+    },
+    "suggest": {
+        "crustum/mcp": "Local STDIO MCP server with bounded diagnostic tools",
+        "crustum/plugin-manifest": "CakePHP plugin installer",
+        "crustum/cakephp-attribute-resolver": "Attributes inspection panel (optional)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Crustum\\DebugBar\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Crustum\\DebugBar\\Test\\": "tests/",
+            "DebugBarTestPlugin\\": "tests/TestApp/Plugin/DebugBarTestPlugin/src/",
+            "TestApp\\": "tests/TestApp/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@rector-check",
+            "@test",
+            "@analyse"
+        ],
+        "fix": [
+            "@cs-fix",
+            "@rector-fix",
+            "@cs-fix",
+            "@analyse"
+        ],
+        "analyse": [
+            "@stan"
+        ],
+        "cs-check": "phpcs -p --standard=phpcs.xml src/ tests/",
+        "cs-fix": "phpcbf --standard=phpcs.xml src/ tests/",
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite=Unit",
+        "test:integration": "phpunit --testsuite=Integration",
+        "rector-check": "vendor/bin/rector process --dry-run",
+        "rector-fix": "vendor/bin/rector process",
+        "stan": "phpstan analyse src/",
+        "stan-baseline": "phpstan analyse --generate-baseline"
+    },
+    "extra": {
+        "installer-name": "DebugBar"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "cakephp/plugin-installer": true,
+            "php-http/discovery": false
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
