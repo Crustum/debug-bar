@@ -368,7 +368,7 @@ class ToolbarServiceTest extends TestCase
 
         $expected = '<html><title>test</title><body><p>some text</p>' .
             '<script id="__debug_bar_script" data-id="' . $row->id . '" ' .
-            'data-url="http://localhost/" type="module" src="/debug_bar/js/inject-iframe.js?' . $timeStamp . '"></script>' .
+            'data-url="http://localhost/" data-mini-position="bottom-right" type="module" src="/debug_bar/js/inject-iframe.js?' . $timeStamp . '"></script>' .
             '</body>';
         $this->assertTextEquals($expected, (string)$response->getBody());
         $this->assertTrue($response->hasHeader('X-DEBUGBAR-ID'), 'Should have a tracking id');

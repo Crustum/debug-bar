@@ -357,3 +357,55 @@ describe('palette shell composition', () => {
     assert.equal(typeof shell.handleShortcut, 'function');
   });
 });
+
+describe('palette favorites', () => {
+  it('lists starred panels first in favorite order', () => {
+    const commands = buildPaletteCommands(INSPECTORS, [
+      'cache',
+      'request',
+      'ghost',
+    ]);
+    const jumps = commands
+      .filter((command) => command.id.startsWith('inspector:'))
+      .map((command) => command.id);
+    assert.deepEqual(jumps, [
+      'inspector:cache',
+      'inspector:request',
+      'inspector:queries',
+    ]);
+    assert.equal(
+      commands.find((command) => command.id === 'inspector:cache').starred,
+      true,
+    );
+    assert.equal(
+      commands.find((command) => command.id === 'inspector:queries').starred,
+      false,
+    );
+  });
+
+  it('keeps starred panels visible in the collapsed list', () => {
+    const commands = buildPaletteCommands(INSPECTORS, ['cache']);
+    assert.equal(countHiddenCommands(commands), 0);
+    const collapsed = filterPaletteCommands(commands, '');
+    assert.ok(collapsed.some((command) => command.id === 'inspector:cache'));
+    assert.ok(
+      !collapsed.some((command) => command.id === PALETTE_SHOW_OTHERS_ID),
+    );
+  });
+
+  it('stars through the shell and reorders the palette', () => {
+    const shell = shellWith();
+    assert.deepEqual(
+      shell.filteredPaletteCommands
+        .filter((command) => command.id.startsWith('inspector:'))
+        .map((command) => command.id),
+      ['inspector:queries', 'inspector:request'],
+    );
+    shell.toggleFavorite('cache');
+    const jumps = shell.filteredPaletteCommands.filter((command) =>
+      command.id.startsWith('inspector:'),
+    );
+    assert.equal(jumps[0].id, 'inspector:cache');
+    assert.equal(shell.paletteHiddenCount, 0);
+  });
+});

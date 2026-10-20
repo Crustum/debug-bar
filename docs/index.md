@@ -331,6 +331,15 @@ copying the request id (for MCP analysis), the theme menu
 (`system`/`light`/`dark`, persisted per browser), and the window controls
 (expand the inspector, shrink back, hide the bar to its mini toggle).
 
+The 40x40 mini icon is the bar's closed state. It docks to any host
+corner or middle edge (`DebugBar.miniPosition`, default
+`bottom-right`); the bar itself always opens bottom-docked. A click
+opens the bar, or jumps straight into the inspector when
+`DebugBar.miniAction` is `inspector` (default `bar`). Both can be
+pinned per browser from the command palette (`mini:<pos>`,
+`mini:open-bar`, `mini:open-inspector`); a stored pin is dropped as soon
+as the server value changes, so configuration always wins.
+
 <a name="request-switcher"></a>
 ### Request Switcher
 
@@ -362,16 +371,20 @@ menus.
 <a name="command-palette"></a>
 ### Command Palette
 
-The palette jumps anywhere: `inspector:<key>` entries (priority-sorted),
-`theme:system|light|dark`, and the six toolbar placements. Filtering is
+The palette jumps anywhere: `inspector:<key>` entries (starred panels
+first, in favorite order, then priority-sorted), `theme:system|light|dark`,
+and the six toolbar placements. Filtering is
 word-AND, `↑↓↵` move and confirm, backdrop click cancels.
 
 <a name="keyboard"></a>
 ### Keyboard
 
 `Ctrl`/`Cmd`+`Alt`+`P` toggles the palette (matched by key code, so it
-works on any layout). `Esc` walks down the stack: palette, theme menu,
-request picker, inspector. Arrow keys move inside pickers and the
+works on any layout), including from the host page while only the mini
+icon is visible — the host forwards the chord into the shell frame.
+`Esc` walks down the stack: palette, theme menu,
+request picker, inspector, then bar back to the mini icon (on a full
+toolbar page the bar stays put). Arrow keys move inside pickers and the
 palette; `Shift`+arrow reorders navigation favorites.
 
 <a name="panels-intro"></a>

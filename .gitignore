@@ -36,6 +36,9 @@ clover.xml
 # Build artifacts
 /build/
 /dist/
+# Empty Vite chunk of the CSS-only entry (webroot/js/styles.js); the real
+# output is webroot/dist/debugbar.css, the .js is never loaded.
+webroot/dist/styles.js
 
 # Environment files
 .env

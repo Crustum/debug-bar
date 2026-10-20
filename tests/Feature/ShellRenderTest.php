@@ -739,6 +739,53 @@ class ShellRenderTest extends TestCase
     }
 
     /**
+     * The mini launcher exposes the server open action.
+     *
+     * The root carries `data-dk-mini-action` and the summary embeds
+     * `mini_action` so the shell boots the configured click behavior
+     * (bar vs inspector) without guessing.
+     *
+     * @return void
+     */
+    public function testShellExposesMiniAction(): void
+    {
+        $previous = Configure::read('DebugBar.miniAction');
+
+        Configure::write('DebugBar.miniAction', 'bar');
+        try {
+            $body = $this->shellBody();
+        } finally {
+            Configure::write('DebugBar.miniAction', $previous);
+        }
+
+        $this->assertStringContainsString('data-dk-mini-action="bar"', $body);
+        $this->assertStringContainsString('data-dk-mini-toggle', $body);
+        $this->assertStringContainsString('Command palette', $body);
+        $this->assertMatchesRegularExpression(
+            '#<script type="application/json" data-dk-summary>(.*?)</script>#s',
+            $body,
+        );
+        preg_match(
+            '#<script type="application/json" data-dk-summary>(.*?)</script>#s',
+            $body,
+            $matches,
+        );
+        $summary = json_decode($matches[1] ?? '', true);
+
+        $this->assertIsArray($summary);
+        $this->assertSame('bar', $summary['mini_action'] ?? null);
+
+        Configure::write('DebugBar.miniAction', 'inspector');
+        try {
+            $body = $this->shellBody();
+        } finally {
+            Configure::write('DebugBar.miniAction', $previous);
+        }
+
+        $this->assertStringContainsString('data-dk-mini-action="inspector"', $body);
+    }
+
+    /**
      * Generic conflicting selectors from the old shell do not leak in.
      *
      * @return void

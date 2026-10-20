@@ -1,7 +1,32 @@
 import { notifyParent, setHidden } from './core.js';
 import { syncAnchorPreview } from './drag.js';
 import { closeAllPickers } from './picker.js';
+import { sanitizeMiniAction, sanitizeMiniPosition } from '../mini.js';
 import { parsePaletteCommand } from '../palette.js';
+
+export function syncMiniToggle(ctx) {
+  const mini = ctx.mini ?? ctx.root.querySelector('[data-dk-mini-toggle]');
+  if (!mini || typeof mini.setAttribute !== 'function') {
+    return;
+  }
+  let action = 'bar';
+  try {
+    action = sanitizeMiniAction(ctx.shell.miniAction);
+  } catch (error) {
+    action = sanitizeMiniAction(ctx.root.getAttribute('data-dk-mini-action'));
+  }
+  const opensInspector = action === 'inspector';
+  mini.setAttribute(
+    'aria-label',
+    opensInspector ? 'Open debug inspector' : 'Open debug toolbar',
+  );
+  mini.setAttribute(
+    'title',
+    opensInspector
+      ? 'Open debug inspector (Control + Alt + P for the command palette)'
+      : 'Open debug toolbar (Control + Alt + P for the command palette)',
+  );
+}
 
 export function openPalette(ctx) {
   const palette = ctx.root.querySelector('[data-dk-palette]');
@@ -115,9 +140,72 @@ export function runPaletteCommand(ctx, id) {
       ctx.shell.paletteIndex = 0;
     } catch (error) {}
     renderPalette(ctx);
+  } else if (kind === 'mini' && value !== '') {
+    if (value === 'open-bar' || value === 'open-inspector') {
+      try {
+        ctx.shell.setMiniAction(
+          value === 'open-inspector' ? 'inspector' : 'bar',
+        );
+      } catch (error) {}
+      syncMiniToggle(ctx);
+      closePalette(ctx);
+    } else if (value === 'open-server-default') {
+      let serverDefault = null;
+      try {
+        serverDefault = ctx.root.getAttribute('data-dk-mini-action');
+      } catch (error) {}
+      try {
+        if (typeof ctx.shell.resetMiniAction === 'function') {
+          ctx.shell.resetMiniAction(serverDefault);
+        } else {
+          ctx.shell.setMiniAction(serverDefault);
+        }
+      } catch (error) {}
+      syncMiniToggle(ctx);
+      closePalette(ctx);
+    } else if (value === 'server-default') {
+      notifyParent('mini-position$$server-default');
+      closePalette(ctx);
+    } else {
+      const position = sanitizeMiniPosition(value);
+      notifyParent(`mini-position$$${position}`);
+      closePalette(ctx);
+    }
   } else {
     closePalette(ctx);
   }
+}
+
+export function handlePaletteMessage(event, ctx) {
+  let sameOrigin = false;
+  try {
+    sameOrigin = !!event && event.origin === window.location.origin;
+  } catch (error) {
+    sameOrigin = false;
+  }
+  if (sameOrigin !== true) {
+    return false;
+  }
+  let fromParent = false;
+  try {
+    fromParent = !!event && event.source === window.parent;
+  } catch (error) {
+    fromParent = false;
+  }
+  if (fromParent !== true) {
+    return false;
+  }
+  if (!event || event.data !== 'open-palette') {
+    return false;
+  }
+  const palette = ctx.root.querySelector('[data-dk-palette]');
+  if (palette && !palette.hasAttribute('hidden')) {
+    closePalette(ctx);
+  } else {
+    openPalette(ctx);
+  }
+
+  return true;
 }
 
 export function handlePaletteClick(target, ctx) {

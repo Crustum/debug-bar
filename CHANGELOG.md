@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1]
+
+Mini launcher control: the 40x40 icon is no longer fixed to the
+bottom-right corner.
+
+### Added
+
+- Mini icon position (`DebugBar.miniPosition`, default
+  `bottom-right`): six host corners and middle edges. The bar itself
+  always stays bottom-docked; only the icon moves. Positions can be
+  pinned from the command palette (`mini:<pos>`); a stored pin survives
+  reloads but is dropped as soon as the server value changes, so the
+  server always wins.
+- Mini click action (`DebugBar.miniAction`, `bar` (default) or
+  `inspector`): a click opens just the bar or jumps straight into the
+  inspector. Switchable from the palette (`mini:open-bar`,
+  `mini:open-inspector`, plus `mini:server-default` and
+  `mini:open-server-default` resets); the mini button label always names
+  the current action.
+- `Esc` now walks the whole stack down to the icon: palette, theme menu,
+  request picker, inspector, then bar back to mini. On a full toolbar
+  page the bar keeps its previous behavior.
+- The command palette hotkey (`Ctrl`/`Cmd`+`Alt`+`P`) works from the
+  host page: the host forwards the chord into the shell frame, so the
+  palette also opens while only the mini icon is visible. Previously the
+  shortcut only worked with focus inside the toolbar frame.
+- Starred panels come first in the palette `Go to` list, in favorite
+  order, and stay listed even when inactive; the hidden-commands count
+  ignores them.
+- Every scalar setting in `config/debug_bar.php` can now be overridden
+  via environment variables (`DEBUGBAR_*`).
+
 ## [1.0.0]
 
 Initial release of `crustum/debug-bar` (`Crustum\DebugBar`).

@@ -1,4 +1,5 @@
 import { DK_TOOLBAR_PLACEMENTS } from '../runtime.js';
+import { buildMiniCommands } from './mini.js';
 
 export const PALETTE_SHOW_OTHERS_ID = 'inspectors:show';
 
@@ -16,8 +17,14 @@ export function inspectorCommandPriority(hint) {
   return 1;
 }
 
-export function buildPaletteCommands(inspectors = []) {
+export function buildPaletteCommands(inspectors = [], favorites = []) {
   const list = Array.isArray(inspectors) ? inspectors : [];
+  const favoriteOrder = new Map();
+  (Array.isArray(favorites) ? favorites : []).forEach((key, index) => {
+    if (typeof key === 'string' && key !== '' && !favoriteOrder.has(key)) {
+      favoriteOrder.set(key, index);
+    }
+  });
   const jumps = list
     .filter(
       (inspector) => typeof inspector?.key === 'string' && inspector.key !== '',
@@ -27,15 +34,28 @@ export function buildPaletteCommands(inspectors = []) {
 
       return {
         id: `inspector:${inspector.key}`,
+        key: inspector.key,
         label: `Go to ${inspector.label ?? inspector.key}`,
         hint,
         priority: inspectorCommandPriority(hint),
+        starred: favoriteOrder.has(inspector.key),
       };
     })
-    .sort(
-      (left, right) =>
-        left.priority - right.priority || left.label.localeCompare(right.label),
-    );
+    .sort((left, right) => {
+      const leftStarred = left.starred === true ? 0 : 1;
+      const rightStarred = right.starred === true ? 0 : 1;
+      if (leftStarred !== rightStarred) return leftStarred - rightStarred;
+      if (leftStarred === 0) {
+        return (
+          (favoriteOrder.get(left.key) ?? 0) -
+          (favoriteOrder.get(right.key) ?? 0)
+        );
+      }
+
+      return (
+        left.priority - right.priority || left.label.localeCompare(right.label)
+      );
+    });
 
   return [
     ...jumps,
@@ -47,12 +67,13 @@ export function buildPaletteCommands(inspectors = []) {
       label: `Pin to ${placement.replaceAll('-', ' ')}`,
       hint: 'Toolbar',
     })),
+    ...buildMiniCommands(),
   ];
 }
 
 export function countHiddenCommands(commands = []) {
   return (Array.isArray(commands) ? commands : []).filter(
-    (command) => command?.hint === 'Other',
+    (command) => command?.hint === 'Other' && command?.starred !== true,
   ).length;
 }
 
@@ -69,7 +90,9 @@ export function filterPaletteCommands(
     .filter(Boolean);
 
   if (words.length === 0 && showQuiet !== true) {
-    const active = all.filter((command) => command?.hint !== 'Other');
+    const active = all.filter(
+      (command) => command?.hint !== 'Other' || command?.starred === true,
+    );
     const hidden = countHiddenCommands(all);
     if (hidden === 0) return active;
 
@@ -127,7 +150,10 @@ export function createPalettePart(context = {}) {
     paletteSearchElement: null,
 
     get paletteCommands() {
-      return buildPaletteCommands(readSummary(this)?.inspectors ?? []);
+      return buildPaletteCommands(
+        readSummary(this)?.inspectors ?? [],
+        this.favorites ?? [],
+      );
     },
 
     get paletteHiddenCount() {
@@ -251,6 +277,40 @@ export function createPalettePart(context = {}) {
         if (typeof this.pinToolbar === 'function') this.pinToolbar(value);
         this.closePalette(this.inspectorOpen !== true);
         if (typeof this.closeInspector === 'function') this.closeInspector();
+
+        return id;
+      }
+
+      if (kind === 'mini') {
+        if (
+          value === 'open-bar' ||
+          value === 'open-inspector' ||
+          value === 'open-server-default'
+        ) {
+          if (value === 'open-server-default') {
+            const serverDefault =
+              readSummary(this)?.mini_action ??
+              readSummary(this)?.miniAction ??
+              null;
+            if (typeof this.resetMiniAction === 'function') {
+              this.resetMiniAction(serverDefault);
+            } else if (typeof this.setMiniAction === 'function') {
+              this.setMiniAction(serverDefault);
+            }
+          } else {
+            const action = value === 'open-inspector' ? 'inspector' : 'bar';
+            if (typeof this.setMiniAction === 'function')
+              this.setMiniAction(action);
+          }
+          if (typeof this.syncMiniToggle === 'function') this.syncMiniToggle();
+          this.closePalette();
+
+          return id;
+        }
+        if (typeof this.requestMiniPosition === 'function') {
+          this.requestMiniPosition(value);
+        }
+        this.closePalette();
 
         return id;
       }

@@ -31,8 +31,10 @@ import {
   closePalette,
   handlePaletteClick,
   handlePaletteKey,
+  handlePaletteMessage,
   initPaletteSearch,
   openPalette,
+  syncMiniToggle,
 } from './palette.js';
 import {
   handleCopyAllClick,
@@ -96,6 +98,20 @@ if (root) {
   });
   try {
     shell.restorePreferences();
+  } catch (error) {}
+  try {
+    const stored = shell.browser?.storage?.getItem?.('debugbar.preferences.v1');
+    const parsed = stored ? JSON.parse(stored) : null;
+    const hasStoredAction =
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      typeof parsed.miniAction === 'string';
+    if (hasStoredAction !== true) {
+      const rootAction = root.getAttribute('data-dk-mini-action');
+      if (rootAction === 'bar' || rootAction === 'inspector') {
+        shell.miniAction = rootAction;
+      }
+    }
   } catch (error) {}
   try {
     shell.restoreToolbarPlacement();
@@ -308,8 +324,18 @@ if (root) {
       return;
     }
     if (target.hasAttribute('data-dk-mini-toggle')) {
-      showBar();
-      notifyParent('toolbar');
+      let action = 'bar';
+      try {
+        action = shell.miniAction === 'inspector' ? 'inspector' : 'bar';
+      } catch (error) {
+        action = 'bar';
+      }
+      if (action === 'inspector') {
+        openInspector();
+      } else {
+        showBar();
+        notifyParent('toolbar');
+      }
 
       return;
     }
@@ -481,6 +507,26 @@ if (root) {
       if (inspector && !inspector.hasAttribute('hidden')) {
         closeInspector();
         event.preventDefault();
+
+        return;
+      }
+      if (toolbar && !toolbar.hasAttribute('hidden')) {
+        let embedded = false;
+        try {
+          embedded =
+            typeof window !== 'undefined' &&
+            typeof window.self !== 'undefined' &&
+            typeof window.top !== 'undefined' &&
+            window.self !== window.top;
+        } catch (error) {
+          embedded = false;
+        }
+        if (embedded) {
+          hideBar();
+          event.preventDefault();
+        }
+
+        return;
       }
 
       return;
@@ -569,6 +615,9 @@ if (root) {
   syncPanels();
   renderNavGroups();
   syncToolbarForm(ctx);
+  try {
+    syncMiniToggle(ctx);
+  } catch (error) {}
   registerSelectionConfigs(root);
   registerPanelScripts(root);
   initQueriesInspectors(ctx);
@@ -577,6 +626,9 @@ if (root) {
   initPaletteSearch(ctx);
   initDrag(ctx);
   window.addEventListener('message', function (event) {
+    if (handlePaletteMessage(event, ctx)) {
+      return;
+    }
     handleHostAjaxMessage(event, ctx);
   });
   if (window.self === window.top) {

@@ -1,4 +1,5 @@
 import { DK_TOOLBAR_PLACEMENTS } from '../runtime.js';
+import { sanitizeMiniAction } from './mini.js';
 
 export const PREFERENCES_STORAGE_KEY = 'debugbar.preferences.v1';
 export const PREFERENCE_THEMES = ['system', 'light', 'dark'];
@@ -63,6 +64,10 @@ export function createPreferencesPart(context = {}) {
     themeMenuReturnFocus: null,
     theme: sanitizeTheme(summary?.theme),
     resolvedTheme: 'light',
+    miniAction: sanitizeMiniAction(summary?.mini_action ?? summary?.miniAction),
+    miniActionServer: sanitizeMiniAction(
+      summary?.mini_action ?? summary?.miniAction,
+    ),
 
     restorePreferences() {
       const storage = readStorage(this);
@@ -75,6 +80,19 @@ export function createPreferencesPart(context = {}) {
       if (!saved || typeof saved !== 'object') return false;
 
       if (PREFERENCE_THEMES.includes(saved.theme)) this.theme = saved.theme;
+      const serverAction = sanitizeMiniAction(
+        this.miniActionServer ??
+          sanitizeMiniAction(summary?.mini_action ?? summary?.miniAction),
+      );
+      if (
+        typeof saved.miniAction === 'string' &&
+        sanitizeMiniAction(saved.miniActionServer) === serverAction
+      ) {
+        this.miniAction = sanitizeMiniAction(saved.miniAction);
+      } else {
+        this.miniAction = serverAction;
+      }
+      this.miniActionServer = serverAction;
       if (DK_TOOLBAR_PLACEMENTS.includes(saved.toolbarAnchor)) {
         this.toolbarPreferredPlacement = saved.toolbarAnchor;
         this.toolbarPlacement = saved.toolbarAnchor;
@@ -101,6 +119,8 @@ export function createPreferencesPart(context = {}) {
             toolbarAnchor: this.toolbarPreferredPlacement,
             favorites: this.favorites,
             inspectorOrder: this.inspectorOrder,
+            miniAction: sanitizeMiniAction(this.miniAction),
+            miniActionServer: sanitizeMiniAction(this.miniActionServer),
           }),
         );
       } catch {
@@ -108,6 +128,23 @@ export function createPreferencesPart(context = {}) {
       }
 
       return true;
+    },
+
+    setMiniAction(action) {
+      const next = sanitizeMiniAction(action);
+      this.miniAction = next;
+      this.persistPreferences();
+
+      return next;
+    },
+
+    resetMiniAction(serverDefault = null) {
+      const next = sanitizeMiniAction(serverDefault);
+      this.miniAction = next;
+      this.miniActionServer = next;
+      this.persistPreferences();
+
+      return next;
     },
 
     toggleFavorite(key) {

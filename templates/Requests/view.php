@@ -18,6 +18,7 @@
  * @var array $recent Recent request rows for the switchers
  */
 use Cake\Core\Configure;
+use Crustum\DebugBar\Service\MiniLauncher;
 use Crustum\DebugBar\Service\RequestFacts;
 use function Cake\Core\h;
 
@@ -61,6 +62,8 @@ $summary['response_size_bytes'] = $facts['response_size_bytes'] ?? null;
 $summary['response_size'] = $facts['response_size'] ?? null;
 $summary['warning'] = $facts['warning'];
 $summary['max_requests'] = (int)$facts['max_requests'];
+$miniAction = MiniLauncher::sanitizeAction(Configure::read('DebugBar.miniAction'));
+$summary['mini_action'] = $miniAction;
 $summary['ignored_url_masks'] = array_values(array_filter(array_map(
     'strval',
     (array)Configure::read('DebugBar.ignored_url_masks', []),
@@ -99,12 +102,14 @@ $recentJson = (string)json_encode(
     data-dk-frame="full"
     data-dk-request-id="<?= h((string)($toolbar->id ?? '')) ?>"
     data-dk-asset-version="<?= h((string)($assetVersion ?? 0)) ?>"
+    data-dk-mini-action="<?= h($miniAction) ?>"
     class="dk-shell-root"
 >
     <button
         type="button"
         data-dk-mini-toggle
         aria-label="Open debug toolbar"
+        title="Open debug toolbar (Control + Alt + P for the command palette)"
         class="dk-mini-toggle"
     ><span aria-hidden="true"><?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'cake', 'size' => '5']) ?></span></button>
     <?= $this->element('Crustum/DebugBar.anchor_preview') ?>

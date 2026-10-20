@@ -175,7 +175,7 @@ class DebugBarMiddlewareTest extends TestCase
 
         $expected = '<html><title>test</title><body><p>some text</p>' .
             '<script id="__debug_bar_script" data-id="' . $result->id . '" ' .
-            'data-url="http://localhost/" type="module" src="/debug_bar/js/inject-iframe.js?' . $timeStamp . '"></script>' .
+            'data-url="http://localhost/" data-mini-position="bottom-right" type="module" src="/debug_bar/js/inject-iframe.js?' . $timeStamp . '"></script>' .
             '</body>';
         $body = (string)$response->getBody();
         $this->assertTextEquals($expected, $body);

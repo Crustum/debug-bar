@@ -16,6 +16,7 @@ use Cake\Routing\Router;
 use Crustum\DebugBar\Model\Entity\Request;
 use Crustum\DebugBar\Panel\PanelRegistry;
 use Crustum\DebugBar\Service\FindingsService;
+use Crustum\DebugBar\Service\MiniLauncher;
 use Crustum\DebugBar\Service\RedactionService;
 use Crustum\DebugBar\Service\TimelineBuilder;
 use Exception;
@@ -78,6 +79,8 @@ class ToolbarService
         'safeTld' => [],
         'ignorePathsPattern' => null,
         'ignored_url_masks' => [],
+        'miniPosition' => 'bottom-right',
+        'miniAction' => 'bar',
     ];
 
     /**
@@ -635,10 +638,12 @@ class ToolbarService
         }
 
         $url = Router::url('/', true);
+        $miniPosition = MiniLauncher::sanitizePosition($this->getConfig('miniPosition'));
         $script = sprintf(
-            '<script id="__debug_bar_script" data-id="%s" data-url="%s" type="module" src="%s"%s></script>',
+            '<script id="__debug_bar_script" data-id="%s" data-url="%s" data-mini-position="%s" type="module" src="%s"%s></script>',
             $row->id,
             $url,
+            $miniPosition,
             Router::url($this->getToolbarUrl()),
             $nonce,
         );
