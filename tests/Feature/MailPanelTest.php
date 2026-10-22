@@ -102,7 +102,7 @@ class MailPanelTest extends TestCase
         $this->get('/debug-bar/toolbar/' . $id);
         $this->assertResponseOk();
 
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
         $this->assertStringContainsString('data-dk-mail-panel', $body);
         $this->assertStringContainsString('data-dk-mail-entry', $body);
         $this->assertStringContainsString('data-dk-mail-detail', $body);
@@ -131,14 +131,14 @@ class MailPanelTest extends TestCase
 
         $this->get('/debug-bar/mail-preview/sent/' . $panel->id . '/0/attachment/0');
         $this->assertResponseOk();
-        $this->assertSame('hello-bytes', (string)$this->_response->getBody());
+        $this->assertSame('hello-bytes', (string)$this->response->getBody());
         $this->assertStringContainsString(
             'text/plain',
-            $this->_response->getHeaderLine('Content-Type'),
+            $this->response->getHeaderLine('Content-Type'),
         );
         $this->assertStringContainsString(
             'notes.txt',
-            $this->_response->getHeaderLine('Content-Disposition'),
+            $this->response->getHeaderLine('Content-Disposition'),
         );
     }
 

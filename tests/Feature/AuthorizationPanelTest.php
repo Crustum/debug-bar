@@ -133,7 +133,7 @@ class AuthorizationPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-authorization-panel', $body);
         $this->assertStringContainsString('data-dk-authorization-entry', $body);
@@ -175,7 +175,7 @@ class AuthorizationPanelTest extends TestCase
         $this->assertResponseOk();
         $this->assertStringContainsString(
             'No authorization decisions were captured',
-            (string)$this->_response->getBody(),
+            (string)$this->response->getBody(),
         );
     }
 }

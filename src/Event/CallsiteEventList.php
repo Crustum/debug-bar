@@ -77,7 +77,7 @@ class CallsiteEventList extends EventList
             $internal = [];
             foreach ([EventManager::class, EventList::class, self::class] as $class) {
                 try {
-                    $file = (new ReflectionClass($class))->getFileName();
+                    $file = new ReflectionClass($class)->getFileName();
                 } catch (Throwable) {
                     continue;
                 }

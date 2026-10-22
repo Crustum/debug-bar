@@ -35,7 +35,7 @@ class McpIntegrationTest extends TestCase
         $local = Configure::read('Mcp.local');
         try {
             Configure::write('Mcp.local', []);
-            (new DebugBarPlugin())->bootstrap(new Application(CONFIG));
+            new DebugBarPlugin()->bootstrap(new Application(CONFIG));
             $registered = Configure::read('Mcp.local', []);
             $this->assertSame(
                 DebugBarServer::class,
@@ -58,7 +58,7 @@ class McpIntegrationTest extends TestCase
      */
     public function testConsoleHasMcpCommand(): void
     {
-        $commands = (new DebugBarPlugin())->console(new CommandCollection([]));
+        $commands = new DebugBarPlugin()->console(new CommandCollection([]));
 
         $this->assertTrue($commands->has('debug-bar mcp'));
         $this->assertSame('debug-bar mcp', McpCommand::defaultName());

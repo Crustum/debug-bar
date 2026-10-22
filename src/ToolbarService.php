@@ -50,7 +50,7 @@ class ToolbarService
      *
      * @var array
      */
-    protected array $_defaultConfig = [
+    protected array $defaultConfig = [
         'panels' => [
             'Crustum/DebugBar.Cache' => true,
             'Crustum/DebugBar.Request' => true,

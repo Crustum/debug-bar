@@ -58,7 +58,7 @@ class ViewsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panelId);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-views-panel', $body);
         $this->assertStringContainsString('data-dk-views-url="/debug-bar/panels/view-data/' . $panelId . '"', $body);
@@ -86,7 +86,7 @@ class ViewsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view-data/' . $panelId . '.json?render=3');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame('vendor/cakephp/cakephp/templates/layout/default.php', $body['file']);
         $this->assertSame(3, $body['order']);

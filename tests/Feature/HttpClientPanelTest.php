@@ -120,7 +120,7 @@ class HttpClientPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-http-panel', $body);
         $this->assertStringContainsString('data-dk-http-entry', $body);
@@ -152,6 +152,6 @@ class HttpClientPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No HTTP client requests', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No HTTP client requests', (string)$this->response->getBody());
     }
 }

@@ -17,7 +17,7 @@ class DebugMemory
      *
      * @var array
      */
-    protected static array $_points = [];
+    protected static array $points = [];
 
     /**
      * Get current memory usage
@@ -57,16 +57,16 @@ class DebugMemory
             $message = Debugger::trimPath($file) . ' line ' . $line;
         }
 
-        if (isset(self::$_points[$message])) {
+        if (isset(self::$points[$message])) {
             $originalMessage = $message;
             $i = 1;
-            while (isset(self::$_points[$message])) {
+            while (isset(self::$points[$message])) {
                 $i++;
                 $message = $originalMessage . ' #' . $i;
             }
         }
 
-        self::$_points[$message] = $memoryUse;
+        self::$points[$message] = $memoryUse;
 
         return true;
     }
@@ -79,9 +79,9 @@ class DebugMemory
      */
     public static function getAll(bool $clear = false): array
     {
-        $marks = self::$_points;
+        $marks = self::$points;
         if ($clear) {
-            self::$_points = [];
+            self::$points = [];
         }
 
         return $marks;
@@ -94,6 +94,6 @@ class DebugMemory
      */
     public static function clear(): void
     {
-        self::$_points = [];
+        self::$points = [];
     }
 }

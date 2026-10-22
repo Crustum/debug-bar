@@ -79,7 +79,7 @@ class SqlLogPanelTest extends TestCase
         $logger = $db->getDriver()->getLogger();
         $this->assertInstanceOf(DebugLog::class, $logger);
 
-        $property = new ReflectionProperty($logger, '_includeSchema');
+        $property = new ReflectionProperty($logger, 'includeSchema');
         $this->assertTrue($property->getValue($logger));
     }
 

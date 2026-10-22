@@ -41,7 +41,7 @@ class VariablesPanel extends DebugPanel
      * @param int $depth Unused, kept for BC.
      * @return array
      */
-    protected function _getErrors(EntityInterface $entity, array $ancestors = [], int $depth = 0): array
+    protected function getErrors(EntityInterface $entity, array $ancestors = [], int $depth = 0): array
     {
         return $entity->getErrors();
     }
@@ -54,7 +54,7 @@ class VariablesPanel extends DebugPanel
      * @param object $item The item whose debug info to retrieve.
      * @return array|string
      */
-    protected function _walkDebugInfo(callable $walker, object $item): array|string
+    protected function walkDebugInfo(callable $walker, object $item): array|string
     {
         try {
             /** @phpstan-ignore method.notFound */
@@ -168,7 +168,7 @@ class VariablesPanel extends DebugPanel
 
         foreach ($vars as $k => $v) {
             if ($v instanceof EntityInterface) {
-                $entityErrors = Hash::filter($this->_getErrors($v));
+                $entityErrors = Hash::filter($this->getErrors($v));
                 if ($entityErrors !== []) {
                     $errors[$k] = $entityErrors;
                 }
@@ -192,7 +192,7 @@ class VariablesPanel extends DebugPanel
             }
         }
 
-        $this->_data = [
+        $this->data = [
             'variables' => $content,
             'errors' => $errors,
             'varsMaxDepth' => $varsMaxDepth,
@@ -206,10 +206,10 @@ class VariablesPanel extends DebugPanel
      */
     public function summary(): string
     {
-        if (!isset($this->_data['variables'])) {
+        if (!isset($this->data['variables'])) {
             return '0';
         }
 
-        return (string)count($this->_data['variables']);
+        return (string)count($this->data['variables']);
     }
 }

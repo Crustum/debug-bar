@@ -21,7 +21,7 @@ final class DebugKitCompat
      *
      * @var array<string>
      */
-    private const FALLBACK_KEYS = [
+    private const array FALLBACK_KEYS = [
         'forceEnable',
         'safeTld',
         'ignoreAuthorization',

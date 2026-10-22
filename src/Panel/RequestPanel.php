@@ -58,6 +58,9 @@ class RequestPanel extends DebugPanel
     public function captureCommandStart(EventInterface $event): void
     {
         $command = $event->getSubject();
+        if (!is_object($command)) {
+            return;
+        }
 
         $this->startCommand($command, $event->getData('args'));
     }
@@ -84,7 +87,7 @@ class RequestPanel extends DebugPanel
         $name = $this->commandDisplayName($target ?? $class);
         $values = $this->commandArgValues($args);
         $options = $target !== null ? $this->commandOptions($target, $args) : [];
-        $this->_data = [
+        $this->data = [
             'context' => 'cli',
             'command' => $class,
             'label' => $this->short(ltrim($class, '\\')),
@@ -126,13 +129,13 @@ class RequestPanel extends DebugPanel
      */
     public function finishCommand(mixed $result, ?int $exitCode = null): void
     {
-        if (($this->_data['context'] ?? '') !== 'cli') {
+        if (($this->data['context'] ?? '') !== 'cli') {
             return;
         }
 
-        $this->_data['result'] = is_scalar($result) ? $result : null;
-        $this->_data['exit_code'] = $exitCode ?? (is_int($result) ? $result : 0);
-        $this->_data['duration_ms'] = (microtime(true) - (float)$this->_data['started']) * 1000;
+        $this->data['result'] = is_scalar($result) ? $result : null;
+        $this->data['exit_code'] = $exitCode ?? (is_int($result) ? $result : 0);
+        $this->data['duration_ms'] = (microtime(true) - (float)$this->data['started']) * 1000;
     }
 
     /**
@@ -566,10 +569,10 @@ class RequestPanel extends DebugPanel
             $httpHeaders[$name] = implode(', ', $lines);
         }
 
-        $rawParams = $request->getAttribute('params') ?? [];
+        $rawParams = (array)$request->getAttribute('params');
         $routeParams = [];
         foreach (['controller', 'action', 'prefix', 'plugin', 'pass', '_matchedRoute', '?', '_ext'] as $key) {
-            if (!is_array($rawParams) || !array_key_exists($key, $rawParams)) {
+            if (!array_key_exists($key, $rawParams)) {
                 continue;
             }
 
@@ -603,7 +606,7 @@ class RequestPanel extends DebugPanel
         $tabNode = static fn(mixed $value): NodeInterface => NodeFlattener::maskSensitive(
             Debugger::exportVarAsNodes($value, $maxDepth),
         );
-        $this->_data = [
+        $this->data = [
             'context' => 'web',
             'params' => $request->getAttribute('params'),
             'routeParams' => $routeParams,

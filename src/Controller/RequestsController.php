@@ -140,7 +140,7 @@ class RequestsController extends DebugBarController
         $url = (string)$toolbar->get('url');
         $statusCode = (int)$toolbar->get('status_code');
 
-        $elementView = (new ViewBuilder())
+        $elementView = new ViewBuilder()
             ->setClassName('Crustum/DebugBar.Ajax')
             ->addHelpers([
                 'Form', 'Html', 'Number', 'Url', 'Crustum/DebugBar.Toolbar',
@@ -253,13 +253,12 @@ class RequestsController extends DebugBarController
         try {
             /** @var \Crustum\DebugBar\Model\Table\PanelsTable $panels */
             $panels = $this->fetchTable('Crustum/DebugBar.Panels');
-            $stored = $panels->find()
+            $stored = $panels->unhydratedFind()
                 ->select(['request_id', 'content'])
                 ->where([
                     'request_id IN' => $ids,
                     'panel IN' => ['Request', 'Crustum/DebugBar.Request'],
                 ])
-                ->disableHydration()
                 ->toArray();
             foreach ($stored as $panelRow) {
                 $requestId = (string)($panelRow['request_id'] ?? '');

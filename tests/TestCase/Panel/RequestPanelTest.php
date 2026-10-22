@@ -143,7 +143,7 @@ class RequestPanelTest extends TestCase
                 };
             }
         };
-        $request = (new ServerRequest(['url' => '/']))
+        $request = new ServerRequest(['url' => '/'])
             ->withAttribute('somePluginService', $service);
         $controller = new Controller($request);
         $this->panel->shutdown(new Event('Controller.shutdown', $controller));
@@ -182,7 +182,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownKeepsRoutePrefixRaw(): void
     {
-        $request = (new ServerRequest(['url' => '/admin/users/edit/1']))
+        $request = new ServerRequest(['url' => '/admin/users/edit/1'])
             ->withAttribute('params', [
                 'controller' => 'Users',
                 'action' => 'edit',
@@ -204,7 +204,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownSummarizesIdentityAttribute(): void
     {
-        $request = (new ServerRequest(['url' => '/admin']))
+        $request = new ServerRequest(['url' => '/admin'])
             ->withAttribute('identity', new Identity(['id' => 42, 'password' => 'hash'], []));
         $controller = new Controller($request);
         $this->panel->shutdown(new Event('Controller.shutdown', $controller));
@@ -225,7 +225,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownMasksNestedSecretsInObjects(): void
     {
-        $request = (new ServerRequest(['url' => '/login']))
+        $request = new ServerRequest(['url' => '/login'])
             ->withAttribute(
                 'authenticationResult',
                 new Result(
@@ -238,8 +238,8 @@ class RequestPanelTest extends TestCase
 
         $data = $this->panel->data();
         $result = NodeFlattener::toPlain($data['attributes']['authenticationResult']);
-        $this->assertSame('ann', $result['_data']['username']);
-        $this->assertSame('********', $result['_data']['password']);
+        $this->assertSame('ann', $result['data']['username']);
+        $this->assertSame('********', $result['data']['password']);
         // The auth fact still resolves the login result.
         $this->assertSame(ResultInterface::SUCCESS, $data['auth']['status']);
     }
@@ -252,7 +252,7 @@ class RequestPanelTest extends TestCase
     public function testShutdownExportsEntityIdentity(): void
     {
         $user = new Entity(['id' => 7, 'username' => 'ann'], ['markClean' => true]);
-        $request = (new ServerRequest(['url' => '/admin']))
+        $request = new ServerRequest(['url' => '/admin'])
             ->withAttribute('identity', new Identity($user, []));
         $controller = new Controller($request);
         $this->panel->shutdown(new Event('Controller.shutdown', $controller));
@@ -301,7 +301,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownCollectsAuthenticatedIdentity(): void
     {
-        $request = (new ServerRequest(['url' => '/admin']))
+        $request = new ServerRequest(['url' => '/admin'])
             ->withAttribute('identity', new Identity(['id' => 42], []))
             ->withAttribute(
                 'authentication',
@@ -326,7 +326,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownPrefersDisplayName(): void
     {
-        $request = (new ServerRequest(['url' => '/admin']))
+        $request = new ServerRequest(['url' => '/admin'])
             ->withAttribute('identity', new Identity(
                 ['id' => '8c7d9503', 'username' => 'ann', 'email' => 'ann@example.com'],
                 [],
@@ -365,7 +365,7 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownCollectsFailedResult(): void
     {
-        $request = (new ServerRequest(['url' => '/login']))
+        $request = new ServerRequest(['url' => '/login'])
             ->withAttribute(
                 'authentication',
                 new Result(null, ResultInterface::FAILURE_CREDENTIALS_INVALID, ['Bad password']),
@@ -386,13 +386,13 @@ class RequestPanelTest extends TestCase
      */
     public function testShutdownCollectsOriginAndFullUrl(): void
     {
-        $uri = (new ServerRequest(['url' => '/admin/users/edit/1']))
+        $uri = new ServerRequest(['url' => '/admin/users/edit/1'])
             ->getUri()
             ->withScheme('https')
             ->withHost('qa.zz')
             ->withPort(8443)
             ->withQuery('tab=main');
-        $request = (new ServerRequest(['url' => '/admin/users/edit/1']))->withUri($uri);
+        $request = new ServerRequest(['url' => '/admin/users/edit/1'])->withUri($uri);
         $controller = new Controller($request);
         $this->panel->shutdown(new Event('Controller.shutdown', $controller));
 

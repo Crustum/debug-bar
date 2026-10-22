@@ -110,7 +110,7 @@ class EventsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-events-panel', $body);
         $this->assertStringContainsString('data-dk-event-entry', $body);
@@ -142,7 +142,7 @@ class EventsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No events were dispatched', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No events were dispatched', (string)$this->response->getBody());
     }
 
     /**
@@ -162,7 +162,7 @@ class EventsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
         $this->assertStringContainsString('data-dk-events-owned', $body);
         $this->assertStringContainsString('RecordingEventManager', $body);
         $this->assertStringNotContainsString('No events were dispatched', $body);

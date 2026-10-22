@@ -24,7 +24,7 @@ class DebugEngine extends CacheEngine implements Stringable
      *
      * @var \Cake\Cache\CacheEngine
      */
-    protected CacheEngine $_engine;
+    protected CacheEngine $engine;
 
     /**
      * Logger receiving cache operation traces.
@@ -62,9 +62,9 @@ class DebugEngine extends CacheEngine implements Stringable
     public function __construct(CacheEngine|array $config, string $name, LoggerInterface $logger)
     {
         if ($config instanceof CacheEngine) {
-            $this->_engine = $config;
+            $this->engine = $config;
         } else {
-            $this->_config = $config;
+            $this->config = $config;
         }
 
         $this->logger = $logger;
@@ -79,9 +79,9 @@ class DebugEngine extends CacheEngine implements Stringable
      */
     public function init(array $config = []): bool
     {
-        if (!isset($this->_engine)) {
+        if (!isset($this->engine)) {
             $registry = new CacheRegistry();
-            $this->_engine = $registry->load('spies', $this->_config);
+            $this->engine = $registry->load('spies', $this->config);
             unset($registry);
         }
 
@@ -95,7 +95,7 @@ class DebugEngine extends CacheEngine implements Stringable
      */
     public function engine(): CacheEngine
     {
-        return $this->_engine;
+        return $this->engine;
     }
 
     /**
@@ -193,7 +193,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function set($key, $value, $ttl = null): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->set($key, $value, $ttl);
+        $result = $this->engine->set($key, $value, $ttl);
         $duration = microtime(true) - $start;
 
         $this->track('set');
@@ -208,7 +208,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function add(string $key, mixed $value): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->add($key, $value);
+        $result = $this->engine->add($key, $value);
         $duration = microtime(true) - $start;
 
         $this->track('set');
@@ -223,7 +223,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function setMultiple($values, $ttl = null): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->setMultiple($values);
+        $result = $this->engine->setMultiple($values);
         $duration = microtime(true) - $start;
 
         $this->track('set');
@@ -238,7 +238,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function get(string $key, mixed $default = null): mixed
     {
         $start = microtime(true);
-        $result = $this->_engine->get($key, $default);
+        $result = $this->engine->get($key, $default);
         $duration = microtime(true) - $start;
         $metric = 'hit';
         if ($result === null) {
@@ -257,7 +257,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function has(string $key): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->has($key);
+        $result = $this->engine->has($key);
         $duration = microtime(true) - $start;
         $metric = 'hit';
         if (!$result) {
@@ -276,7 +276,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function getMultiple($keys, $default = null): iterable
     {
         $start = microtime(true);
-        $result = $this->_engine->getMultiple($keys, $default);
+        $result = $this->engine->getMultiple($keys, $default);
         $duration = microtime(true) - $start;
 
         $this->track('get hit');
@@ -291,7 +291,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function increment(string $key, int $offset = 1): int|false
     {
         $start = microtime(true);
-        $result = $this->_engine->increment($key, $offset);
+        $result = $this->engine->increment($key, $offset);
         $duration = microtime(true) - $start;
 
         $this->track('set');
@@ -306,7 +306,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function decrement(string $key, int $offset = 1): int|false
     {
         $start = microtime(true);
-        $result = $this->_engine->decrement($key, $offset);
+        $result = $this->engine->decrement($key, $offset);
         $duration = microtime(true) - $start;
 
         $this->track('set');
@@ -321,7 +321,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function delete($key): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->delete($key);
+        $result = $this->engine->delete($key);
         $duration = microtime(true) - $start;
 
         $this->track('delete');
@@ -336,7 +336,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function deleteMultiple($keys): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->deleteMultiple($keys);
+        $result = $this->engine->deleteMultiple($keys);
         $duration = microtime(true) - $start;
 
         $this->track('delete');
@@ -351,7 +351,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function clear(): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->clear();
+        $result = $this->engine->clear();
         $duration = microtime(true) - $start;
 
         $this->track('delete');
@@ -365,7 +365,7 @@ class DebugEngine extends CacheEngine implements Stringable
      */
     public function groups(): array
     {
-        return $this->_engine->groups();
+        return $this->engine->groups();
     }
 
     /**
@@ -377,7 +377,7 @@ class DebugEngine extends CacheEngine implements Stringable
      */
     public function getConfig(?string $key = null, mixed $default = null): mixed
     {
-        return $this->_engine->getConfig($key, $default);
+        return $this->engine->getConfig($key, $default);
     }
 
     /**
@@ -389,9 +389,9 @@ class DebugEngine extends CacheEngine implements Stringable
      * @return $this
      * @throws \Cake\Core\Exception\CakeException When trying to set a key that is invalid.
      */
-    public function setConfig(array|string $key, mixed $value = null, bool $merge = true)
+    public function setConfig(array|string $key, mixed $value = null, bool $merge = true): static
     {
-        $this->_engine->setConfig($key, $value, $merge);
+        $this->engine->setConfig($key, $value, $merge);
 
         return $this;
     }
@@ -402,7 +402,7 @@ class DebugEngine extends CacheEngine implements Stringable
     public function clearGroup(string $group): bool
     {
         $start = microtime(true);
-        $result = $this->_engine->clearGroup($group);
+        $result = $this->engine->clearGroup($group);
         $duration = microtime(true) - $start;
 
         $this->track('delete');
@@ -418,13 +418,13 @@ class DebugEngine extends CacheEngine implements Stringable
      */
     public function __toString(): string
     {
-        if (isset($this->_engine)) {
+        if (isset($this->engine)) {
             // phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable
-            [$ns, $class] = namespaceSplit($this->_engine::class);
+            [$ns, $class] = namespaceSplit($this->engine::class);
 
             return str_replace('Engine', '', $class);
         }
 
-        return (string)$this->_config['className'];
+        return (string)$this->config['className'];
     }
 }

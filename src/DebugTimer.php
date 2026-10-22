@@ -18,7 +18,7 @@ class DebugTimer
      *
      * @var array
      */
-    protected static array $_timers = [];
+    protected static array $timers = [];
 
     /**
      * Start an benchmarking timer.
@@ -45,18 +45,18 @@ class DebugTimer
             $message = $name;
         }
 
-        $_name = $name;
+        $baseName = $name;
         $i = 1;
-        while (isset(self::$_timers[$name])) {
+        while (isset(self::$timers[$name])) {
             $i++;
-            $name = $_name . ' #' . $i;
+            $name = $baseName . ' #' . $i;
         }
 
         if ($i > 1) {
             $message .= ' #' . $i;
         }
 
-        self::$_timers[$name] = [
+        self::$timers[$name] = [
             'start' => $start,
             'message' => $message,
             'named' => $named,
@@ -77,34 +77,40 @@ class DebugTimer
     {
         $end = microtime(true);
         if (!$name) {
-            $names = array_reverse(array_keys(self::$_timers));
-            foreach ($names as $name) {
-                if (!empty(self::$_timers[$name]['end'])) {
+            $names = array_reverse(array_keys(self::$timers));
+            $name = null;
+            foreach ($names as $candidate) {
+                if (!empty(self::$timers[$candidate]['end'])) {
                     continue;
                 }
 
-                if (empty(self::$_timers[$name]['named'])) {
+                if (empty(self::$timers[$candidate]['named'])) {
+                    $name = $candidate;
                     break;
                 }
             }
+
+            if ($name === null) {
+                return false;
+            }
         } else {
             $i = 1;
-            $_name = $name;
-            while (isset(self::$_timers[$name])) {
-                if (empty(self::$_timers[$name]['end'])) {
+            $baseName = $name;
+            while (isset(self::$timers[$name])) {
+                if (empty(self::$timers[$name]['end'])) {
                     break;
                 }
 
                 $i++;
-                $name = $_name . ' #' . $i;
+                $name = $baseName . ' #' . $i;
             }
         }
 
-        if (!isset(self::$_timers[$name])) {
+        if (!isset(self::$timers[$name])) {
             return false;
         }
 
-        self::$_timers[$name]['end'] = $end;
+        self::$timers[$name]['end'] = $end;
 
         return true;
     }
@@ -122,21 +128,21 @@ class DebugTimer
         $now = microtime(true);
 
         $times = [];
-        if (self::$_timers !== []) {
-            $firstTimer = reset(self::$_timers);
-            $_end = $firstTimer['start'];
+        if (self::$timers !== []) {
+            $firstTimer = reset(self::$timers);
+            $endTime = $firstTimer['start'];
         } else {
-            $_end = $now;
+            $endTime = $now;
         }
 
         $times['Core Processing (Derived from $_SERVER["REQUEST_TIME"])'] = [
             'message' => 'Core Processing (Derived from $_SERVER["REQUEST_TIME"])',
             'start' => 0,
-            'end' => $_end - $start,
-            'time' => round($_end - $start, 6),
+            'end' => $endTime - $start,
+            'time' => round($endTime - $start, 6),
             'named' => null,
         ];
-        foreach (self::$_timers as $name => $timer) {
+        foreach (self::$timers as $name => $timer) {
             $timer['end'] ??= $now;
 
             $times[$name] = array_merge($timer, [
@@ -147,7 +153,7 @@ class DebugTimer
         }
 
         if ($clear) {
-            self::$_timers = [];
+            self::$timers = [];
         }
 
         return $times;
@@ -160,7 +166,7 @@ class DebugTimer
      */
     public static function clear(): bool
     {
-        self::$_timers = [];
+        self::$timers = [];
 
         return true;
     }
@@ -174,11 +180,11 @@ class DebugTimer
      */
     public static function elapsedTime(string $name = 'default', int $precision = 5): float
     {
-        if (!isset(self::$_timers[$name]['start']) || !isset(self::$_timers[$name]['end'])) {
+        if (!isset(self::$timers[$name]['start']) || !isset(self::$timers[$name]['end'])) {
             return 0;
         }
 
-        return round(self::$_timers[$name]['end'] - self::$_timers[$name]['start'], $precision);
+        return round(self::$timers[$name]['end'] - self::$timers[$name]['start'], $precision);
     }
 
     /**

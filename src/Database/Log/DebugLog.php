@@ -26,28 +26,28 @@ class DebugLog extends AbstractLogger
      *
      * @var array
      */
-    protected array $_queries = [];
+    protected array $queries = [];
 
     /**
      * Decorated logger.
      *
      * @var \Psr\Log\LoggerInterface|null
      */
-    protected ?LoggerInterface $_logger = null;
+    protected ?LoggerInterface $logger = null;
 
     /**
      * Name of the connection being logged.
      *
      * @var string
      */
-    protected string $_connectionName;
+    protected string $connectionName;
 
     /**
      * Total time (ms) of all queries
      *
      * @var float
      */
-    protected float $_totalTime = 0;
+    protected float $totalTime = 0;
 
     /**
      * Set to true to capture schema reflection queries
@@ -55,7 +55,7 @@ class DebugLog extends AbstractLogger
      *
      * @var bool
      */
-    protected bool $_includeSchema = false;
+    protected bool $includeSchema = false;
 
     /**
      * Whether a transaction is currently open or not.
@@ -73,9 +73,9 @@ class DebugLog extends AbstractLogger
      */
     public function __construct(?LoggerInterface $logger, string $name, bool $includeSchema = false)
     {
-        $this->_logger = $logger;
-        $this->_connectionName = $name;
-        $this->_includeSchema = $includeSchema;
+        $this->logger = $logger;
+        $this->connectionName = $name;
+        $this->includeSchema = $includeSchema;
     }
 
     /**
@@ -84,9 +84,9 @@ class DebugLog extends AbstractLogger
      * @param bool $value Set
      * @return $this
      */
-    public function setIncludeSchema(bool $value)
+    public function setIncludeSchema(bool $value): static
     {
-        $this->_includeSchema = $value;
+        $this->includeSchema = $value;
 
         return $this;
     }
@@ -98,7 +98,7 @@ class DebugLog extends AbstractLogger
      */
     public function name(): string
     {
-        return $this->_connectionName;
+        return $this->connectionName;
     }
 
     /**
@@ -108,7 +108,7 @@ class DebugLog extends AbstractLogger
      */
     public function queries(): array
     {
-        return $this->_queries;
+        return $this->queries;
     }
 
     /**
@@ -118,8 +118,8 @@ class DebugLog extends AbstractLogger
      */
     public function clearQueries(): void
     {
-        $this->_queries = [];
-        $this->_totalTime = 0;
+        $this->queries = [];
+        $this->totalTime = 0;
         $this->inTransaction = false;
     }
 
@@ -130,7 +130,7 @@ class DebugLog extends AbstractLogger
      */
     public function totalTime(): float
     {
-        return $this->_totalTime;
+        return $this->totalTime;
     }
 
     /**
@@ -141,16 +141,16 @@ class DebugLog extends AbstractLogger
         /** @var \Cake\Database\Log\LoggedQuery|object|null $query */
         $query = $context['query'] ?? null;
 
-        if ($this->_logger instanceof LoggerInterface) {
-            $this->_logger->log($level, $message, $context);
+        if ($this->logger instanceof LoggerInterface) {
+            $this->logger->log($level, $message, $context);
         }
 
         // This specific to Elastic Search
         if (!$query instanceof LoggedQuery && isset($context['request']) && isset($context['response'])) {
             $took = $context['response']['took'] ?? 0;
-            $this->_totalTime += $took;
+            $this->totalTime += $took;
 
-            $this->_queries[] = [
+            $this->queries[] = [
                 'query' => json_encode([
                     'method' => $context['request']['method'],
                     'path' => $context['request']['path'],
@@ -168,14 +168,14 @@ class DebugLog extends AbstractLogger
 
         if (
             !$query instanceof LoggedQuery ||
-            ($this->_includeSchema === false && $this->isSchemaQuery($query))
+            ($this->includeSchema === false && $this->isSchemaQuery($query))
         ) {
             return;
         }
 
         $data = $query->jsonSerialize();
 
-        $this->_totalTime += $data['took'];
+        $this->totalTime += $data['took'];
 
         $sql = (string)$query;
         $isBegin = $sql === 'BEGIN';
@@ -190,7 +190,7 @@ class DebugLog extends AbstractLogger
         $driver = $context['driver'] ?? null;
         $callsite = $this->captureCallsite();
 
-        $this->_queries[] = [
+        $this->queries[] = [
             'query' => $sql,
             'took' => $data['took'],
             'rows' => $data['numRows'],
@@ -198,8 +198,8 @@ class DebugLog extends AbstractLogger
             'isCommitOrRollback' => $isCommitOrRollback,
             'role' => $context['role'] ?? '',
             'params' => $data['params'] ?? [],
-            'driver' => is_object($driver) ? (new ReflectionClass($driver))->getShortName() : null,
-            'connection' => $this->_connectionName,
+            'driver' => is_object($driver) ? new ReflectionClass($driver)->getShortName() : null,
+            'connection' => $this->connectionName,
             'start' => $now - ((float)$data['took'] / 1000),
             'end' => $now,
             'error' => $data['error'] ?? null,

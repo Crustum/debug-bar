@@ -152,7 +152,7 @@ class ShellRenderTest extends TestCase
         $this->get('/debug-bar/toolbar/' . $id);
         $this->assertResponseOk();
 
-        return (string)$this->_response->getBody();
+        return (string)$this->response->getBody();
     }
 
     /**
@@ -243,7 +243,7 @@ class ShellRenderTest extends TestCase
 
         $this->get('/debug-bar/toolbar/' . $request->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         preg_match('#<(button|div)[^>]*data-dk-header-fact="memory"[^>]*>#', $body, $memory);
         $this->assertSame('div', $memory[1] ?? null, 'Peak fact must not be a button');
@@ -324,7 +324,7 @@ class ShellRenderTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         // Split workspace: list beside a single detail pane.
         $this->assertStringContainsString('data-dk-queries', $body);
@@ -400,7 +400,7 @@ class ShellRenderTest extends TestCase
         try {
             $this->get('/debug-bar/panels/view/' . $panel->id);
             $this->assertResponseOk();
-            $body = (string)$this->_response->getBody();
+            $body = (string)$this->response->getBody();
         } finally {
             Configure::delete('DebugBar.links');
         }
@@ -551,7 +551,7 @@ class ShellRenderTest extends TestCase
         ]]);
         $this->get('/debug-bar/toolbar/' . $request->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $disclosure = strpos($body, 'data-dk-cache-clear');
         $counters = strpos($body, 'data-dk-cache-summary');
@@ -587,7 +587,7 @@ class ShellRenderTest extends TestCase
         $this->get('/debug-bar/toolbar/' . $request->id);
         $this->assertResponseOk();
 
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
         $this->assertStringContainsString("'composer.lock' not found", $body);
     }
 

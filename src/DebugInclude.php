@@ -19,21 +19,21 @@ class DebugInclude
      *
      * @var array<string>
      */
-    protected array $_pluginPaths = [];
+    protected array $pluginPaths = [];
 
     /**
      * The list of Composer packages
      *
      * @var array<string>
      */
-    protected array $_composerPaths = [];
+    protected array $composerPaths = [];
 
     /**
      * File Types
      *
      * @var array
      */
-    protected array $_fileTypes = [
+    protected array $fileTypes = [
         'Auth', 'Cache', 'Collection', 'Config', 'Configure', 'Console', 'Component', 'Controller',
         'Behavior', 'Database', 'Datasource', 'Model', 'Template', 'View', 'Utility',
         'Network', 'Routing', 'I18n', 'Log', 'Error', 'Event', 'Form', 'Filesystem',
@@ -46,7 +46,7 @@ class DebugInclude
     public function __construct()
     {
         foreach (CorePlugin::loaded() as $plugin) {
-            $this->_pluginPaths[$plugin] = str_replace('/', DIRECTORY_SEPARATOR, CorePlugin::path($plugin));
+            $this->pluginPaths[$plugin] = str_replace('/', DIRECTORY_SEPARATOR, CorePlugin::path($plugin));
         }
 
         $lockFile = new JsonFile(ROOT . DIRECTORY_SEPARATOR . 'composer.lock');
@@ -59,7 +59,7 @@ class DebugInclude
             foreach ($packages as $package) {
                 /** @var string $name */
                 $name = $package['name'];
-                $this->_composerPaths[$name] = $vendorDir
+                $this->composerPaths[$name] = $vendorDir
                     . str_replace('/', DIRECTORY_SEPARATOR, $name)
                     . DIRECTORY_SEPARATOR;
             }
@@ -110,7 +110,7 @@ class DebugInclude
     public function getPluginName(string $file): string|bool
     {
         $file = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $file);
-        foreach ($this->_pluginPaths as $plugin => $path) {
+        foreach ($this->pluginPaths as $plugin => $path) {
             if (str_starts_with($file, $path)) {
                 return $plugin;
             }
@@ -128,7 +128,7 @@ class DebugInclude
     public function getComposerPackageName(string $file): string|bool
     {
         $file = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $file);
-        foreach ($this->_composerPaths as $package => $path) {
+        foreach ($this->composerPaths as $package => $path) {
             if (str_starts_with($file, $path)) {
                 return $package;
             }
@@ -152,8 +152,10 @@ class DebugInclude
             'app' => str_replace(APP, 'APP' . DIRECTORY_SEPARATOR, $file),
             'cake' => str_replace(CAKE, 'CAKE' . DIRECTORY_SEPARATOR, $file),
             'root' => str_replace(ROOT, 'ROOT', $file),
-            'plugin' => str_replace($this->_pluginPaths[$name], $name . DIRECTORY_SEPARATOR, $file),
-            'vendor' => str_replace($this->_composerPaths[$name], '', $file),
+            'plugin' => $name !== null && isset($this->pluginPaths[$name]) ?
+                str_replace($this->pluginPaths[$name], $name . DIRECTORY_SEPARATOR, $file) : $file,
+            'vendor' => $name !== null && isset($this->composerPaths[$name]) ?
+                str_replace($this->composerPaths[$name], '', $file) : $file,
             default => throw new InvalidArgumentException("Type `{$type}` is not supported."),
         };
 
@@ -169,7 +171,7 @@ class DebugInclude
     public function getFileType(string $file): string
     {
         $file = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $file);
-        foreach ($this->_fileTypes as $type) {
+        foreach ($this->fileTypes as $type) {
             if (stripos($file, DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR) !== false) {
                 return $type;
             }

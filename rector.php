@@ -56,4 +56,4 @@ return RectorConfig::configure()
         typeDeclarations: true,
         earlyReturn: true,
     )
-    ->withPhpSets(php81: true);
+    ->withPhpSets(php84: true);

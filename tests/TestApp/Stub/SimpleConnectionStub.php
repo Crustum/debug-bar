@@ -19,7 +19,7 @@ class SimpleConnectionStub implements ConnectionInterface
         return new stdClass();
     }
 
-    public function setCacher(CacheInterface $cacher)
+    public function setCacher(CacheInterface $cacher): static
     {
         return $this;
     }

@@ -31,7 +31,7 @@ class RequestProbeCommand
      */
     public function getOptionParser(): ConsoleOptionParser
     {
-        return (new ConsoleOptionParser())
+        return new ConsoleOptionParser()
             ->addArgument('name', ['help' => 'Project name.'])
             ->addOption('dry-run', ['boolean' => true, 'default' => false]);
     }

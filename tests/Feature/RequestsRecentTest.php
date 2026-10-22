@@ -40,7 +40,7 @@ class RequestsRecentTest extends TestCase
 
         $this->get('/debug-bar/requests/recent.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame(2, $body['pagination']['count']);
         $this->assertSame('/second', $body['requests'][0]['url']);
@@ -64,7 +64,7 @@ class RequestsRecentTest extends TestCase
 
         $this->get('/debug-bar/requests/recent.json?limit=2');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame(2, $body['pagination']['limit']);
         $this->assertSame(2, $body['pagination']['count']);
@@ -84,7 +84,7 @@ class RequestsRecentTest extends TestCase
 
         $this->get('/debug-bar/requests/recent.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame(20, $body['pagination']['limit']);
         $this->assertSame(3, $body['pagination']['count']);

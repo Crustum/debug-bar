@@ -131,17 +131,8 @@ class PanelsController extends DebugBarController
         $limit = $limit === null ? null : max(1, (int)$limit);
 
         $pagination = ['cursor' => $cursor, 'has_more' => false, 'matching_count' => count($data)];
-
-        $listKey = null;
-        foreach (['items', 'events'] as $candidate) {
-            if (
-                isset($data[$candidate]) && is_array($data[$candidate]) &&
-                array_is_list($data[$candidate])
-            ) {
-                $listKey = $candidate;
-                break;
-            }
-        }
+        $listKey = array_find(['items', 'events'], fn($candidate): bool => isset($data[$candidate]) && is_array($data[$candidate]) &&
+        array_is_list($data[$candidate]));
 
         if ($listKey !== null) {
             $total = count($data[$listKey]);
@@ -281,10 +272,10 @@ class PanelsController extends DebugBarController
 
         $html = '';
         if (is_array($plain) && $plain !== []) {
-            $elementView = (new ViewBuilder())
+            $elementView = new ViewBuilder()
                 ->setClassName('Crustum/DebugBar.Ajax')
                 ->build($this->request, $this->response, $this->getEventManager());
-            $html = (string)$elementView->element('Crustum/DebugBar.ui/debug_tree', [
+            $html = $elementView->element('Crustum/DebugBar.ui/debug_tree', [
                 'nodes' => $plain,
                 'openDepth' => 1,
             ]);
@@ -327,10 +318,10 @@ class PanelsController extends DebugBarController
 
         $html = '';
         $plain = VarExporter::flatten($node);
-        $elementView = (new ViewBuilder())
+        $elementView = new ViewBuilder()
             ->setClassName('Crustum/DebugBar.Ajax')
             ->build($this->request, $this->response, $this->getEventManager());
-        $html = (string)$elementView->element('Crustum/DebugBar.ui/debug_tree', [
+        $html = $elementView->element('Crustum/DebugBar.ui/debug_tree', [
             'nodes' => [$name => $plain],
             'openDepth' => 1,
         ]);

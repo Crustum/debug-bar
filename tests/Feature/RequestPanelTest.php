@@ -83,7 +83,7 @@ class RequestPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-request-steps', $body);
         $this->assertStringContainsString('data-dk-request-step="received"', $body);
@@ -164,7 +164,7 @@ class RequestPanelTest extends TestCase
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
 
-        $this->assertStringNotContainsString('>Middleware<', (string)$this->_response->getBody());
+        $this->assertStringNotContainsString('>Middleware<', (string)$this->response->getBody());
     }
 
     /**
@@ -190,7 +190,7 @@ class RequestPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-request-empty', $body);
         $this->assertStringContainsString('No request facts', $body);
@@ -229,7 +229,7 @@ class RequestPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-request-context="cli"', $body);
         $this->assertStringContainsString('setting-ext show', $body);
@@ -282,7 +282,7 @@ class RequestPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('>ack<', $body);
         $this->assertStringNotContainsString('Exit 0', $body);

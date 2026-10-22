@@ -45,11 +45,11 @@ class Application extends BaseApplication
         $routes->connect('/users/{action}/*', ['controller' => 'Users']);
         $routes->scope(
             '/browser-fixtures',
-            ['controller' => 'BrowserFixtures'],
             function (RouteBuilder $routes): void {
                 $routes->setRouteClass(DashedRoute::class);
                 $routes->connect('/{action}/*', []);
             },
+            ['controller' => 'BrowserFixtures'],
         );
     }
 

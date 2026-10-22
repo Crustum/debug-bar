@@ -32,7 +32,7 @@ class QueryFormatter
         }
 
         try {
-            $html = (new SqlFormatter(new HtmlHighlighter()))->format($sql);
+            $html = new SqlFormatter(new HtmlHighlighter())->format($sql);
         } catch (Throwable) {
             return $sql;
         }

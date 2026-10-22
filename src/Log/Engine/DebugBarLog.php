@@ -19,7 +19,7 @@ class DebugBarLog extends BaseLog
      *
      * @var array
      */
-    protected array $_logs = [];
+    protected array $logs = [];
 
     /**
      * Captures log messages in memory.
@@ -35,9 +35,9 @@ class DebugBarLog extends BaseLog
      */
     public function log(mixed $level, Stringable|string $message, array $context = []): void
     {
-        $this->_logs[$level] ??= [];
+        $this->logs[$level] ??= [];
 
-        $this->_logs[$level][] = [
+        $this->logs[$level][] = [
             date('Y-m-d H:i:s'),
             $this->interpolate($message, $context),
             microtime(true),
@@ -52,7 +52,7 @@ class DebugBarLog extends BaseLog
      */
     public function all(): array
     {
-        return $this->_logs;
+        return $this->logs;
     }
 
     /**
@@ -62,7 +62,7 @@ class DebugBarLog extends BaseLog
      */
     public function count(): int
     {
-        return array_reduce($this->_logs, fn(int $sum, array $v): int => $sum + count($v), 0);
+        return array_reduce($this->logs, fn(int $sum, array $v): int => $sum + count($v), 0);
     }
 
     /**
@@ -72,7 +72,7 @@ class DebugBarLog extends BaseLog
      */
     public function clear(): void
     {
-        $this->_logs = [];
+        $this->logs = [];
     }
 
     /**
@@ -82,6 +82,6 @@ class DebugBarLog extends BaseLog
      */
     public function noLogs(): bool
     {
-        return $this->_logs === [];
+        return $this->logs === [];
     }
 }

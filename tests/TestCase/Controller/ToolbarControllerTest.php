@@ -102,7 +102,7 @@ class ToolbarControllerTest extends TestCase
         $this->configRequest(['headers' => ['Accept' => 'application/json']]);
         $this->post('/debug-bar/toolbar/clear-all-caches');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertTrue($body['success']);
         $this->assertMatchesRegularExpression('/All \d+ caches cleared\./', (string)$body['message']);

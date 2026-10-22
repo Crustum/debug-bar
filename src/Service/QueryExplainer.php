@@ -47,7 +47,7 @@ class QueryExplainer
         }
 
         $driver = $connectionObject->getDriver();
-        $driverName = (new ReflectionClass($driver))->getShortName();
+        $driverName = new ReflectionClass($driver)->getShortName();
 
         $statement = $this->runnableStatement($connection, $sql, $params);
         if ($statement === null) {

@@ -41,7 +41,7 @@ class PanelRegistry extends ObjectRegistry implements EventDispatcherInterface
      * @param string $class Partial class name to resolve.
      * @return string|null Either the correct class name, null if the class is not found.
      */
-    protected function _resolveClassName(string $class): ?string
+    protected function resolveClassName(string $class): ?string
     {
         return App::className($class, 'Panel', 'Panel');
     }
@@ -56,7 +56,7 @@ class PanelRegistry extends ObjectRegistry implements EventDispatcherInterface
      * @return void
      * @throws \RuntimeException
      */
-    protected function _throwMissingClassError(string $class, ?string $plugin): void
+    protected function throwMissingClassError(string $class, ?string $plugin): void
     {
         throw new RuntimeException(sprintf("Unable to find '%s' panel.", $class));
     }
@@ -72,7 +72,7 @@ class PanelRegistry extends ObjectRegistry implements EventDispatcherInterface
      * @return \Crustum\DebugBar\DebugPanel The constructed panel class.
      * @throws \RuntimeException When the class is not a panel.
      */
-    protected function _create(object|string $class, string $alias, array $config): DebugPanel
+    protected function create(object|string $class, string $alias, array $config): DebugPanel
     {
         $instance = is_string($class) ? new $class() : $class;
 

@@ -71,7 +71,7 @@ class FindingsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-finding="query.slow"', $body);
         $this->assertStringContainsString('Slow query (250 ms)', $body);
@@ -95,6 +95,6 @@ class FindingsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No findings', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No findings', (string)$this->response->getBody());
     }
 }

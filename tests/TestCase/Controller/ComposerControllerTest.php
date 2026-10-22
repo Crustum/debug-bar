@@ -42,7 +42,7 @@ class ComposerControllerTest extends TestCase
         $this->post('/debug-bar/composer/check-dependencies');
         $this->assertResponseOk();
         $this->assertContentType('application/json');
-        $data = json_decode((string)$this->_response->getBody(), true);
+        $data = json_decode((string)$this->response->getBody(), true);
         $this->assertArrayHasKey('packages', $data);
     }
 
@@ -61,7 +61,7 @@ class ComposerControllerTest extends TestCase
         $this->post('/debug-bar/composer/audit');
         $this->assertResponseOk();
         $this->assertContentType('application/json');
-        $data = json_decode((string)$this->_response->getBody(), true);
+        $data = json_decode((string)$this->response->getBody(), true);
         $this->assertArrayHasKey('vulnerable', $data);
         $this->assertArrayHasKey('advisories', $data);
         $this->assertArrayHasKey('count', $data);

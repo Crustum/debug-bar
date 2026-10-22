@@ -42,7 +42,7 @@ class DebugBarControllerTest extends TestCase
      *
      * @return Crustum\DebugBar\Controller\DebugBarController
      */
-    private function _buildController(): DebugBarController
+    private function buildController(): DebugBarController
     {
         $request = new ServerRequest(['url' => '/debug-bar/']);
 
@@ -61,7 +61,7 @@ class DebugBarControllerTest extends TestCase
      */
     public function testDontIgnoreAuthorization(): void
     {
-        $controller = $this->_buildController();
+        $controller = $this->buildController();
         $event = new Event('testing');
         $controller->beforeFilter($event);
 
@@ -78,7 +78,7 @@ class DebugBarControllerTest extends TestCase
     {
         Configure::write('DebugBar.ignoreAuthorization', true);
 
-        $controller = $this->_buildController();
+        $controller = $this->buildController();
         $event = new Event('testing');
         $controller->beforeFilter($event);
 

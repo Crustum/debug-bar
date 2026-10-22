@@ -15,24 +15,23 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
-        "cakephp/cakephp": "^5.4",
+        "php": ">=8.5",
+        "cakephp/cakephp": "6.x-dev",
         "composer/composer": "^2.8",
         "doctrine/sql-formatter": "^1.1.3"
     },
     "require-dev": {
-        "cakephp/authentication": "^3.0|^4.0",
-        "cakephp/authorization": "^3.0",
-        "cakedc/cakephp-phpstan": "^4.3",
-        "cakephp/cakephp-codesniffer": "^5.3",
-        "crustum/mcp": "^1.0",
-        "crustum/plugin-manifest": "^1.2",
+        "cakephp/authentication": "5.x-dev",
+        "cakephp/authorization": "4.x-dev",
+        "cakedc/cakephp-phpstan": "5.next-cake6-dev",
+        "cakephp/cakephp-codesniffer": "6.x-dev",
+        "crustum/plugin-manifest": "2.x-dev",
         "phpstan/phpstan": "^2.3",
-        "phpunit/phpunit": "^10.5 || ^11.1 || ^12.5 | ^13.0",
-        "rector/rector": "^2.7",
-        "crustum/cakephp-attribute-resolver": "^1.0"
+        "phpunit/phpunit": "^12.5 | ^13.0",
+        "rector/rector": "^2.7"
     },
     "suggest": {
+        "_crustum/mcp": "^2.x-dev",
         "crustum/mcp": "Local STDIO MCP server with bounded diagnostic tools",
         "crustum/plugin-manifest": "CakePHP plugin installer",
         "crustum/cakephp-attribute-resolver": "Attributes inspection panel (optional)"

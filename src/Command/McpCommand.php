@@ -4,8 +4,6 @@ declare(strict_types=1);
 namespace Crustum\DebugBar\Command;
 
 use Cake\Command\Command;
-use Cake\Console\Arguments;
-use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Crustum\Mcp\Command\McpStartCommand;
 use Override;
@@ -51,14 +49,14 @@ class McpCommand extends Command
      * @inheritDoc
      */
     #[Override]
-    public function execute(Arguments $args, ConsoleIo $io): ?int
+    public function execute(): ?int
     {
         if (!class_exists(McpStartCommand::class)) {
-            $io->error('The optional `crustum/mcp` dependency is not installed.');
+            $this->io->error('The optional `crustum/mcp` dependency is not installed.');
 
             return static::CODE_ERROR;
         }
 
-        return $this->executeCommand(McpStartCommand::class, ['cake-debugbar'], $io);
+        return $this->executeCommand(McpStartCommand::class, ['cake-debugbar']);
     }
 }

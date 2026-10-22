@@ -64,7 +64,7 @@ class RequestPanelsTest extends TestCase
 
         $this->get('/debug-bar/requests/panels/' . $request->id . '.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame('/switched', $body['request']['url']);
         $this->assertSame('POST', $body['request']['method']);
@@ -122,7 +122,7 @@ class RequestPanelsTest extends TestCase
 
             $this->get('/debug-bar/requests/panels/' . $first->id . '.json');
             $this->assertResponseOk();
-            $body = json_decode((string)$this->_response->getBody(), true);
+            $body = json_decode((string)$this->response->getBody(), true);
             $this->assertCount(25, $body['recent']);
         } finally {
             Configure::delete('DebugBar.storage.max_requests');

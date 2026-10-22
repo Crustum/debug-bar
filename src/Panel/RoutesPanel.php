@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Panel;
 
+use Cake\Controller\Controller;
 use Cake\Event\EventInterface;
 use Cake\Routing\Router;
 use Crustum\DebugBar\DebugPanel;
@@ -35,7 +36,11 @@ class RoutesPanel extends DebugPanel
     public function shutdown(EventInterface $event): void
     {
         $controller = $event->getSubject();
-        $this->_data = [
+        if (!$controller instanceof Controller) {
+            return;
+        }
+
+        $this->data = [
             'matchedRoute' => $controller->getRequest()->getParam('_matchedRoute'),
         ];
     }

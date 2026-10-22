@@ -119,7 +119,7 @@ class ModelsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-models-panel', $body);
         $this->assertStringContainsString('data-dk-model-entry', $body);
@@ -155,6 +155,6 @@ class ModelsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No ORM operations were captured', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No ORM operations were captured', (string)$this->response->getBody());
     }
 }

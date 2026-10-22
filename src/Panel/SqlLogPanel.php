@@ -29,7 +29,7 @@ class SqlLogPanel extends DebugPanel
      *
      * @var array
      */
-    protected static array $_loggers = [];
+    protected static array $loggers = [];
 
     /**
      * Reads the connected loggers (deduplicated).
@@ -42,7 +42,7 @@ class SqlLogPanel extends DebugPanel
     public static function loggers(): array
     {
         $unique = [];
-        foreach (static::$_loggers as $logger) {
+        foreach (static::$loggers as $logger) {
             if ($logger instanceof DebugLog) {
                 $unique[spl_object_id($logger)] = $logger;
             }
@@ -99,8 +99,8 @@ class SqlLogPanel extends DebugPanel
 
         if ($logger instanceof DebugLog) {
             $logger->setIncludeSchema($includeSchemaReflection);
-            if (!in_array($logger, static::$_loggers, true)) {
-                static::$_loggers[] = $logger;
+            if (!in_array($logger, static::$loggers, true)) {
+                static::$loggers[] = $logger;
             }
 
             return;
@@ -111,8 +111,8 @@ class SqlLogPanel extends DebugPanel
         /** @var \Cake\Database\Driver $driver */
         $driver->setLogger($logger);
 
-        if (!in_array($logger, static::$_loggers, true)) {
-            static::$_loggers[] = $logger;
+        if (!in_array($logger, static::$loggers, true)) {
+            static::$loggers[] = $logger;
         }
     }
 
@@ -126,7 +126,7 @@ class SqlLogPanel extends DebugPanel
      */
     public static function clear(): void
     {
-        foreach (static::$_loggers as $logger) {
+        foreach (static::$loggers as $logger) {
             $logger->clearQueries();
         }
     }
@@ -146,7 +146,7 @@ class SqlLogPanel extends DebugPanel
         $redaction = new RedactionService((array)Configure::read('DebugBar'));
         $explainer = new QueryExplainer();
         $items = [];
-        foreach (static::$_loggers as $logger) {
+        foreach (static::$loggers as $logger) {
             foreach ($logger->queries() as $query) {
                 $sql = (string)($query['query'] ?? '');
                 $rawParams = array_values((array)($query['params'] ?? []));
@@ -187,7 +187,7 @@ class SqlLogPanel extends DebugPanel
 
         return [
             'tables' => $this->genericTableAliases(),
-            'loggers' => static::$_loggers,
+            'loggers' => static::$loggers,
             'items' => $items,
             'records' => $records,
             'summary' => $analyzer->summarize($records, $totalMs),
@@ -225,7 +225,7 @@ class SqlLogPanel extends DebugPanel
     {
         $count = 0;
         $time = 0;
-        foreach (static::$_loggers as $logger) {
+        foreach (static::$loggers as $logger) {
             $count += count($logger->queries());
             $time += $logger->totalTime();
         }

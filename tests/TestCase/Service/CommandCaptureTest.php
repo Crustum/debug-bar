@@ -73,7 +73,7 @@ class CommandCaptureTest extends TestCase
      */
     public function testEventPriorities(): void
     {
-        $events = (new CommandCapture())->implementedEvents();
+        $events = new CommandCapture()->implementedEvents();
 
         $this->assertSame(1, $events['Command.beforeExecute']['priority']);
         $this->assertSame(1000, $events['Command.afterExecute']['priority']);

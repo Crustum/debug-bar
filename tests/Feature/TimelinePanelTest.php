@@ -58,7 +58,7 @@ class TimelinePanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id . '.json?cursor=2&limit=2');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertCount(2, $body['data']['events']);
         $this->assertSame('SELECT 2', $body['data']['events'][0]['label']);
@@ -87,7 +87,7 @@ class TimelinePanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-timeline-panel', $body);
         $this->assertStringContainsString('data-dk-timeline-entry', $body);

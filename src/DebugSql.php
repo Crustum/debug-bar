@@ -125,7 +125,7 @@ TEXT;
             $highlighter = new NullHighlighter();
         }
 
-        $var = (new SqlFormatter($highlighter))->format($sql);
+        $var = new SqlFormatter($highlighter)->format($sql);
         $var = trim($var);
 
         if ($showHtml) {

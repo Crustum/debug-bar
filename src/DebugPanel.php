@@ -28,7 +28,7 @@ class DebugPanel implements EventListenerInterface
      *
      * @var array
      */
-    protected array $_data = [];
+    protected array $data = [];
 
     /**
      * Event managers already subscribed in this process, keyed by panel class.
@@ -91,7 +91,7 @@ class DebugPanel implements EventListenerInterface
      */
     public function data(): array
     {
-        return $this->_data;
+        return $this->data;
     }
 
     /**
@@ -120,7 +120,7 @@ class DebugPanel implements EventListenerInterface
      *
      * The middleware runs this on every loaded panel before handling a
      * request. Override when the panel keeps request state outside of
-     * `$_data` (static inboxes, loggers, engine buffers); panels without
+     * `data` (static inboxes, loggers, engine buffers); panels without
      * carried state inherit the no-op.
      *
      * @return void

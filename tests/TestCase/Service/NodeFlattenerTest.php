@@ -78,8 +78,8 @@ class NodeFlattenerTest extends TestCase
      */
     public function testExoticScalars(): void
     {
-        $this->assertSame('H', NodeFlattener::toPlain(new ScalarNode('enum', NodeFlattenerSuit::Hearts)));
-        $this->assertSame('Hearts', NodeFlattener::toPlain(new ScalarNode('enum', NodeFlattenerPlainSuit::Hearts)));
+        $this->assertSame('H', NodeFlattener::toPlain(new ScalarNode('enum', NodeFlattenerSuitEnum::Hearts)));
+        $this->assertSame('Hearts', NodeFlattener::toPlain(new ScalarNode('enum', NodeFlattenerPlainSuitEnum::Hearts)));
 
         $stream = fopen('php://memory', 'r');
         $this->assertSame(

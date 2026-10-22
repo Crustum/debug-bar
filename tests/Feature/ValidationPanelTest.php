@@ -35,7 +35,7 @@ class ValidationPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No validation errors.', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No validation errors.', (string)$this->response->getBody());
     }
 
     /**
@@ -60,7 +60,7 @@ class ValidationPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-validation-entry', $body);
         $this->assertStringContainsString('email', $body);

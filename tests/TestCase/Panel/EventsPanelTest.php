@@ -54,7 +54,7 @@ class EventsPanelTest extends TestCase
             EventManager::instance()->setEventList($this->previousList);
         }
 
-        (new EventsPanel())->initialize();
+        new EventsPanel()->initialize();
         EventManager::instance()->off('Test.debugEvent');
         parent::tearDown();
     }
@@ -169,10 +169,10 @@ class EventsPanelTest extends TestCase
     public function testDispatchSitePointsAtDispatcher(): void
     {
         EventManager::instance()->setEventList(new CallsiteEventList());
-        (new EventsPanel())->initialize();
+        new EventsPanel()->initialize();
         EventManager::instance()->dispatch(new Event('Test.sited', new stdClass()));
 
-        $data = (new EventsPanel())->data();
+        $data = new EventsPanel()->data();
 
         $this->assertCount(1, $data['events']);
         $source = (string)$data['events'][0]['dispatch_sources'][0]['source'];
@@ -192,16 +192,16 @@ class EventsPanelTest extends TestCase
     public function testOwnedRecordingReportsOwner(): void
     {
         $owner = new class extends EventManager {
-            public function addEventToList(EventInterface $event)
+            public function addEventToList(EventInterface $event): static
             {
                 return $this;
             }
         };
         EventManager::instance($owner);
-        (new EventsPanel())->initialize();
+        new EventsPanel()->initialize();
         EventManager::instance()->dispatch(new Event('Test.owned', new stdClass()));
 
-        $data = (new EventsPanel())->data();
+        $data = new EventsPanel()->data();
 
         $this->assertSame([], $data['events']);
         $this->assertNotNull($data['recording_owner']);

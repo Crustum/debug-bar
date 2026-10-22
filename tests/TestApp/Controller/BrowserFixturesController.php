@@ -52,7 +52,7 @@ class BrowserFixturesController extends Controller
         $articles = $this->fetchTable('BrowserArticles');
         $rows = Cache::remember(
             'dbb_articles_index',
-            fn() => $articles->find()->select(['id', 'title'])->limit(20)->all()->toList(),
+            fn(): array => $articles->find()->select(['id', 'title'])->limit(20)->all()->toList(),
             'dbb_fixtures',
         );
         Cache::read('dbb_articles_missing', 'dbb_fixtures');
@@ -483,7 +483,7 @@ class BrowserFixturesController extends Controller
      */
     protected function sendFixtureMail(string $subject, string $body): void
     {
-        (new Mailer())
+        new Mailer()
             ->setTransport('dbb')
             ->setFrom('sender@example.com', 'Sender')
             ->setTo('recipient@example.com', 'Recipient')

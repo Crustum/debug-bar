@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace Crustum\DebugBar;
 
 use Cake\Console\CommandCollection;
+use Cake\Container\ContainerInterface;
 use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
-use Cake\Core\ContainerInterface;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Error\PhpError;
 use Cake\Event\EventInterface;

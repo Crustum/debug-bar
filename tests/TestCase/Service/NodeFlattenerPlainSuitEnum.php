@@ -6,7 +6,7 @@ namespace Crustum\DebugBar\Test\TestCase\Service;
 /**
  * Pure enum fixture for scalar degradation.
  */
-enum NodeFlattenerPlainSuit
+enum NodeFlattenerPlainSuitEnum
 {
     case Hearts;
 }

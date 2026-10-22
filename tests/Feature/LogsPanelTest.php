@@ -43,7 +43,7 @@ class LogsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-logs-panel', $body);
         $this->assertStringContainsString('data-dk-workspace', $body);
@@ -77,7 +77,7 @@ class LogsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-tree-scope', $body);
         $this->assertStringContainsString('user_id', $body);

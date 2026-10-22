@@ -76,7 +76,7 @@ class ValidationPanelTest extends TestCase
              * @param array $data Form data.
              * @return bool
              */
-            protected function _execute(array $data): bool
+            protected function process(array $data): bool
             {
                 return false;
             }

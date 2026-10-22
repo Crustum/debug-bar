@@ -44,13 +44,7 @@ class CommandCapture implements EventListenerInterface
      */
     public static function shouldSkip(object $command): bool
     {
-        foreach (static::$skipped as $skipped) {
-            if ($command instanceof $skipped) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any(static::$skipped, fn(string $skipped): bool => $command instanceof $skipped);
     }
 
     /**
@@ -85,6 +79,10 @@ class CommandCapture implements EventListenerInterface
         }
 
         $command = $event->getSubject();
+        if (!is_object($command)) {
+            return;
+        }
+
         if (static::shouldSkip($command)) {
             return;
         }
@@ -110,6 +108,10 @@ class CommandCapture implements EventListenerInterface
         }
 
         $command = $event->getSubject();
+        if (!is_object($command)) {
+            return;
+        }
+
         if (static::shouldSkip($command)) {
             return;
         }

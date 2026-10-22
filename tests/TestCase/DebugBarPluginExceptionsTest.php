@@ -69,7 +69,7 @@ class DebugBarPluginExceptionsTest extends TestCase
      */
     public function testListenerRecordsDispatchedException(): void
     {
-        (new DebugBarPlugin())->setExceptionListener($this->service());
+        new DebugBarPlugin()->setExceptionListener($this->service());
 
         EventManager::instance()->dispatch(new Event(
             'Exception.beforeRender',
@@ -89,7 +89,7 @@ class DebugBarPluginExceptionsTest extends TestCase
      */
     public function testErrorHandlerMiddlewareRecordsHandledException(): void
     {
-        (new DebugBarPlugin())->setExceptionListener($this->service());
+        new DebugBarPlugin()->setExceptionListener($this->service());
 
         $middleware = new ErrorHandlerMiddleware(['log' => false]);
         $handler = new class implements RequestHandlerInterface {

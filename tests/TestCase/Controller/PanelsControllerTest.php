@@ -215,7 +215,7 @@ class PanelsControllerTest extends TestCase
         $this->get("/debug-bar/panels/view-variable/{$panel->id}.json?var=foo");
 
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
         $this->assertSame('foo', $body['name']);
         $this->assertStringContainsString('data-dk-debug-tree', (string)$body['html']);
     }
@@ -250,7 +250,7 @@ class PanelsControllerTest extends TestCase
         $this->get("/debug-bar/panels/view-variable/{$panel->id}.json?var=user");
 
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
         $this->assertStringContainsString('********', (string)$body['html']);
         $this->assertStringNotContainsString('$2y$12$llQ6Frzaejh0hiHedemB2', (string)$body['html']);
     }

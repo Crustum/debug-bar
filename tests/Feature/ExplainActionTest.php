@@ -47,7 +47,7 @@ class ExplainActionTest extends TestCase
     protected function enableTestAppCsrf(): string
     {
         Configure::write('DebugBar.TestApp.csrf', true);
-        $token = (new CsrfProtectionMiddleware())->createToken();
+        $token = new CsrfProtectionMiddleware()->createToken();
         $this->cookie('csrfToken', $token);
 
         return $token;
@@ -69,7 +69,7 @@ class ExplainActionTest extends TestCase
         ]);
         $this->post('/debug-bar/panels/explain');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertArrayHasKey('plan', $body);
         $this->assertSame('query-plan', $body['mode']);
@@ -121,7 +121,7 @@ class ExplainActionTest extends TestCase
 
         $this->post('/debug-bar/panels/explain.json', ['request_id' => $id, 'execution' => 1]);
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertArrayHasKey('plan', $body);
         $this->assertSame('query-plan', $body['mode']);
@@ -139,7 +139,7 @@ class ExplainActionTest extends TestCase
 
         $this->post('/debug-bar/panels/explain.json', ['request_id' => $id, 'execution' => 2]);
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertArrayHasKey('unavailable_reason', $body);
         $this->assertArrayNotHasKey('plan', $body);
@@ -154,14 +154,14 @@ class ExplainActionTest extends TestCase
     {
         $this->post('/debug-bar/panels/explain.json', ['request_id' => 'missing', 'execution' => 1]);
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
         $this->assertArrayHasKey('error', $body);
         $this->assertStringContainsString('no longer stored', (string)$body['error']);
 
         $id = $this->seedSqlRequest();
         $this->post('/debug-bar/panels/explain.json', ['request_id' => $id, 'execution' => 99]);
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
         $this->assertArrayHasKey('error', $body);
     }
 
@@ -175,7 +175,7 @@ class ExplainActionTest extends TestCase
         $request = $this->seedRequest([]);
         $this->post('/debug-bar/panels/explain.json', ['request_id' => (string)$request->id, 'execution' => 1]);
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
         $this->assertSame('This request has no SQL panel.', $body['error'] ?? null);
     }
 
@@ -200,7 +200,7 @@ class ExplainActionTest extends TestCase
         ]);
         $this->post('/debug-bar/panels/explain.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertArrayHasKey('plan', $body);
         $this->assertSame('query-plan', $body['mode']);
@@ -229,7 +229,7 @@ class ExplainActionTest extends TestCase
     {
         $id = $this->seedSqlRequest();
         $this->enableTestAppCsrf();
-        $other = (new CsrfProtectionMiddleware())->createToken();
+        $other = new CsrfProtectionMiddleware()->createToken();
 
         $this->configRequest([
             'headers' => [
@@ -259,7 +259,7 @@ class ExplainActionTest extends TestCase
 
         $this->get('/debug-bar/toolbar/' . $id);
         $this->assertResponseOk();
-        $shell = (string)$this->_response->getBody();
+        $shell = (string)$this->response->getBody();
         $this->assertMatchesRegularExpression(
             '/data-dk-queries[^>]*data-dk-csrf-token="([^"]+)"/',
             $shell,
@@ -268,7 +268,7 @@ class ExplainActionTest extends TestCase
         preg_match('/data-dk-queries[^>]*data-dk-csrf-token="([^"]+)"/', $shell, $matches);
         $token = html_entity_decode($matches[1] ?? '', ENT_QUOTES);
 
-        $cookie = $this->_response->getCookie('csrfToken');
+        $cookie = $this->response->getCookie('csrfToken');
         $this->assertNotEmpty($cookie['value'] ?? null);
         $this->cookie('csrfToken', (string)$cookie['value']);
 
@@ -282,7 +282,7 @@ class ExplainActionTest extends TestCase
         ]);
         $this->post('/debug-bar/panels/explain.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertArrayHasKey('plan', $body);
     }

@@ -33,7 +33,7 @@ class AuthorizationPanelTest extends TestCase
     {
         parent::setUp();
         AuthorizationPanel::clear();
-        (new AuthorizationPanel())->initialize();
+        new AuthorizationPanel()->initialize();
     }
 
     /**
@@ -64,7 +64,7 @@ class AuthorizationPanelTest extends TestCase
         $this->assertTrue($decorated->can(null, 'view', new TestResource(7, true)));
         $this->assertFalse($decorated->can(null, 'view', new TestResource(8, false)));
 
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
 
         $this->assertCount(2, $data['decisions']);
         $this->assertSame('view', $data['decisions'][0]['ability']);
@@ -106,7 +106,7 @@ class AuthorizationPanelTest extends TestCase
         $decorated = new DebugBarAuthorizationServiceDecorator($service);
         $decorated->can(null, 'view', new TestResource(9, false));
 
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
 
         $this->assertSame('Not the owner.', $data['decisions'][0]['result_message']);
     }
@@ -126,7 +126,7 @@ class AuthorizationPanelTest extends TestCase
 
         $this->assertInstanceOf(ResultInterface::class, $result);
         $this->assertTrue($result->getStatus());
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
         $this->assertCount(1, $data['decisions']);
         $this->assertSame('allowed', $data['decisions'][0]['result']);
     }
@@ -192,7 +192,7 @@ class AuthorizationPanelTest extends TestCase
                 . ' --> Rule matched {"role":"admin","allowed":true} with result = 1',
         ]));
 
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
 
         $this->assertCount(1, $data['decisions']);
         $this->assertSame('Articles/view', $data['decisions'][0]['ability']);
@@ -234,7 +234,7 @@ class AuthorizationPanelTest extends TestCase
             'reason' => 'No permission rule matched',
         ]));
 
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
 
         $this->assertSame('bob', $data['decisions'][0]['user_label']);
         $this->assertSame('user', $data['decisions'][0]['role']);
@@ -263,7 +263,7 @@ class AuthorizationPanelTest extends TestCase
             'reason' => 'SuperuserPolicy allowed',
         ]));
 
-        $data = (new AuthorizationPanel())->data();
+        $data = new AuthorizationPanel()->data();
 
         $this->assertSame('Dashboard/index', $data['decisions'][0]['ability']);
         $this->assertSame('Superuser check', $data['decisions'][0]['origin']);
@@ -312,7 +312,7 @@ class AuthorizationPanelTest extends TestCase
         $handler = new TestHandler();
 
         $middleware = new DebugBarAuthorizationMiddleware();
-        $request = (new ServerRequest())->withAttribute('authorization', $service);
+        $request = new ServerRequest()->withAttribute('authorization', $service);
         $middleware->process($request, $handler);
         $first = $handler->seen->getAttribute('authorization');
         $this->assertInstanceOf(DebugBarAuthorizationServiceDecorator::class, $first);

@@ -20,14 +20,14 @@ class EnvironmentPanel extends DebugPanel
      *
      * @var \Crustum\DebugBar\DebugInclude
      */
-    protected DebugInclude $_debug;
+    protected DebugInclude $debug;
 
     /**
      * construct
      */
     public function __construct()
     {
-        $this->_debug = new DebugInclude();
+        $this->debug = new DebugInclude();
     }
 
     /**
@@ -35,7 +35,7 @@ class EnvironmentPanel extends DebugPanel
      *
      * @return array
      */
-    protected function _prepare(): array
+    protected function prepare(): array
     {
         $return = [];
 
@@ -80,7 +80,7 @@ class EnvironmentPanel extends DebugPanel
         $var = get_defined_constants(true);
         $return['app'] = array_diff_key($var['user'], $return['cake'], $hiddenCakeConstants);
 
-        $includePaths = $this->_debug->includePaths();
+        $includePaths = $this->debug->includePaths();
         foreach ($includePaths as $k => $v) {
             $includePaths[$k] = Debugger::exportVarAsNodes($v);
         }
@@ -94,7 +94,7 @@ class EnvironmentPanel extends DebugPanel
     /**
      * Get the collected data, collecting on first read.
      *
-     * Shutdown fills `_data` for web requests, but CLI and worker runs
+     * Shutdown fills `data` for web requests, but CLI and worker runs
      * never dispatch `Controller.shutdown` — lazy collection here keeps
      * every tab populated there too (only Versions is computed by the
      * element itself).
@@ -103,11 +103,11 @@ class EnvironmentPanel extends DebugPanel
      */
     public function data(): array
     {
-        if ($this->_data === []) {
-            $this->_data = $this->_prepare();
+        if ($this->data === []) {
+            $this->data = $this->prepare();
         }
 
-        return $this->_data;
+        return $this->data;
     }
 
     /**
@@ -118,7 +118,7 @@ class EnvironmentPanel extends DebugPanel
      */
     public function shutdown(EventInterface $event): void
     {
-        $this->_data = $this->_prepare();
+        $this->data = $this->prepare();
     }
 
     /**
@@ -132,31 +132,31 @@ class EnvironmentPanel extends DebugPanel
 
         foreach (get_included_files() as $file) {
             /** @var string|false $pluginName */
-            $pluginName = $this->_debug->getPluginName($file);
+            $pluginName = $this->debug->getPluginName($file);
 
             if ($pluginName) {
-                $return['plugins'][$pluginName][$this->_debug->getFileType($file)][] = $this->_debug->niceFileName(
+                $return['plugins'][$pluginName][$this->debug->getFileType($file)][] = $this->debug->niceFileName(
                     $file,
                     'plugin',
                     $pluginName,
                 );
-            } elseif ($this->_debug->isAppFile($file)) {
-                $return['app'][$this->_debug->getFileType($file)][] = $this->_debug->niceFileName($file, 'app');
-            } elseif ($this->_debug->isCakeFile($file)) {
-                $return['cake'][$this->_debug->getFileType($file)][] = $this->_debug->niceFileName($file, 'cake');
+            } elseif ($this->debug->isAppFile($file)) {
+                $return['app'][$this->debug->getFileType($file)][] = $this->debug->niceFileName($file, 'app');
+            } elseif ($this->debug->isCakeFile($file)) {
+                $return['cake'][$this->debug->getFileType($file)][] = $this->debug->niceFileName($file, 'cake');
             } else {
                 /** @var string|false $vendorName */
-                $vendorName = $this->_debug->getComposerPackageName($file);
+                $vendorName = $this->debug->getComposerPackageName($file);
 
                 if ($vendorName) {
-                    $return['vendor'][$vendorName][] = $this->_debug->niceFileName($file, 'vendor', $vendorName);
+                    $return['vendor'][$vendorName][] = $this->debug->niceFileName($file, 'vendor', $vendorName);
                 } else {
-                    $return['other'][] = $this->_debug->niceFileName($file, 'root');
+                    $return['other'][] = $this->debug->niceFileName($file, 'root');
                 }
             }
         }
 
-        $return['paths'] = $this->_debug->includePaths();
+        $return['paths'] = $this->debug->includePaths();
 
         ksort($return['app']);
         ksort($return['cake']);

@@ -40,7 +40,7 @@ class PanelsJsonTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id . '.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame('Cache', $body['title']);
         $this->assertSame([], $body['data']['metrics']);
@@ -60,7 +60,7 @@ class PanelsJsonTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id . '.json');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame('Acme.Widget summary', $body['summary']);
         $this->assertSame('hello', $body['data']['greeting']);
@@ -80,7 +80,7 @@ class PanelsJsonTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id . '.json?limit=3&cursor=2');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertSame([3, 4, 5], array_values($body['data']['items']));
         $this->assertSame(2, $body['pagination']['cursor']);
@@ -102,7 +102,7 @@ class PanelsJsonTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id . '.json?limit=5');
         $this->assertResponseOk();
-        $body = json_decode((string)$this->_response->getBody(), true);
+        $body = json_decode((string)$this->response->getBody(), true);
 
         $this->assertFalse($body['pagination']['has_more']);
         $this->assertSame(2, $body['pagination']['matching_count']);

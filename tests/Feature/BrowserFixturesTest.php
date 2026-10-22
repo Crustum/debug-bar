@@ -55,10 +55,10 @@ class BrowserFixturesTest extends TestCase
     {
         $this->get('/browser-fixtures/articles');
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
         $this->assertStringContainsString('Articles', $body);
         $this->assertStringContainsString('__debug_bar_script', $body);
-        $this->assertNotEmpty($this->_response->getHeaderLine('X-DEBUGBAR-ID'));
+        $this->assertNotEmpty($this->response->getHeaderLine('X-DEBUGBAR-ID'));
 
         $panels = $this->storedPanels('/browser-fixtures/articles');
         $this->assertArrayHasKey('SqlLog', $panels);
@@ -75,11 +75,11 @@ class BrowserFixturesTest extends TestCase
     {
         $this->get('/browser-fixtures/article-add');
         $this->assertResponseOk();
-        $this->assertStringContainsString('article-form', (string)$this->_response->getBody());
+        $this->assertStringContainsString('article-form', (string)$this->response->getBody());
 
         $this->post('/browser-fixtures/article-add', ['title' => '', 'body' => 'short']);
         $this->assertResponseCode(422);
-        $this->assertStringContainsString('form-errors', (string)$this->_response->getBody());
+        $this->assertStringContainsString('form-errors', (string)$this->response->getBody());
         $panels = $this->panelsForLastRequest();
         $this->assertArrayHasKey('Validation', $panels);
         $validation = unserialize((string)$panels['Validation']->content);
@@ -91,14 +91,14 @@ class BrowserFixturesTest extends TestCase
             'body' => 'A body long enough to validate.',
         ]);
         $this->assertResponseCode(302);
-        $location = $this->_response->getHeaderLine('Location');
+        $location = $this->response->getHeaderLine('Location');
         $this->assertStringContainsString('/browser-fixtures/article-view/', $location);
         $panels = $this->panelsForLastRequest();
         $this->assertArrayHasKey('Mail', $panels);
 
         $this->get($location);
         $this->assertResponseOk();
-        $this->assertStringContainsString($title, (string)$this->_response->getBody());
+        $this->assertStringContainsString($title, (string)$this->response->getBody());
         $viewPanels = $this->panelsForLastRequest();
         $this->assertArrayHasKey('Models', $viewPanels);
 
@@ -121,10 +121,10 @@ class BrowserFixturesTest extends TestCase
     {
         $this->get($url);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
         $this->assertStringContainsString($heading, $body);
         $this->assertStringContainsString('__debug_bar_script', $body);
-        $this->assertNotEmpty($this->_response->getHeaderLine('X-DEBUGBAR-ID'));
+        $this->assertNotEmpty($this->response->getHeaderLine('X-DEBUGBAR-ID'));
         $this->assertStoredRow($url);
     }
 
@@ -177,7 +177,7 @@ class BrowserFixturesTest extends TestCase
         $this->assertContentType('application/json');
         $this->assertStringNotContainsString(
             '__debug_bar_script',
-            (string)$this->_response->getBody(),
+            (string)$this->response->getBody(),
         );
         $this->assertStoredRow('/browser-fixtures/plain-json');
 
@@ -185,7 +185,7 @@ class BrowserFixturesTest extends TestCase
         $this->assertResponseOk();
         $this->assertStringNotContainsString(
             '__debug_bar_script',
-            (string)$this->_response->getBody(),
+            (string)$this->response->getBody(),
         );
         $this->assertStoredRow('/browser-fixtures/plain-text');
 
@@ -193,7 +193,7 @@ class BrowserFixturesTest extends TestCase
         $this->assertResponseOk();
         $this->assertStringNotContainsString(
             '__debug_bar_script',
-            (string)$this->_response->getBody(),
+            (string)$this->response->getBody(),
         );
         $this->assertStoredRow('/browser-fixtures/headless');
 
@@ -201,7 +201,7 @@ class BrowserFixturesTest extends TestCase
         $this->assertResponseOk();
         $this->assertStringContainsString(
             'attachment',
-            $this->_response->getHeaderLine('Content-Disposition'),
+            $this->response->getHeaderLine('Content-Disposition'),
         );
         $this->assertStoredRow('/browser-fixtures/download');
 
@@ -209,7 +209,7 @@ class BrowserFixturesTest extends TestCase
         $this->assertResponseCode(422);
         $this->assertStringContainsString(
             '__debug_bar_script',
-            (string)$this->_response->getBody(),
+            (string)$this->response->getBody(),
         );
         $this->assertStoredRow('/browser-fixtures/failed');
 
@@ -246,7 +246,7 @@ class BrowserFixturesTest extends TestCase
      */
     protected function panelsForLastRequest(): array
     {
-        $id = $this->_response->getHeaderLine('X-DEBUGBAR-ID');
+        $id = $this->response->getHeaderLine('X-DEBUGBAR-ID');
         $this->assertNotEmpty($id, 'Missing X-DEBUGBAR-ID response header.');
         $row = $this->fetchTable('Crustum/DebugBar.Requests')
             ->find()

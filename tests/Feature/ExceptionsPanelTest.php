@@ -74,7 +74,7 @@ class ExceptionsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $body = (string)$this->_response->getBody();
+        $body = (string)$this->response->getBody();
 
         $this->assertStringContainsString('data-dk-exceptions-panel', $body);
         $this->assertStringContainsString('RuntimeException', $body);
@@ -98,6 +98,6 @@ class ExceptionsPanelTest extends TestCase
 
         $this->get('/debug-bar/panels/view/' . $panel->id);
         $this->assertResponseOk();
-        $this->assertStringContainsString('No exceptions were captured', (string)$this->_response->getBody());
+        $this->assertStringContainsString('No exceptions were captured', (string)$this->response->getBody());
     }
 }

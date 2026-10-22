@@ -69,7 +69,7 @@ class ValidationPanel extends DebugPanel
             }
         }
 
-        $this->_data = ['errors' => $errors];
+        $this->data = ['errors' => $errors];
     }
 
     /**
@@ -93,11 +93,11 @@ class ValidationPanel extends DebugPanel
         int $depth = 0,
     ): array {
         $seen ??= new SplObjectStorage();
-        if ($seen->contains($entity) || $depth > 5) {
+        if ($seen->offsetExists($entity) || $depth > 5) {
             return [];
         }
 
-        $seen->attach($entity);
+        $seen->offsetSet($entity);
         $errors = $entity->getErrors();
 
         foreach ($entity->getVisible() as $property) {
@@ -137,13 +137,7 @@ class ValidationPanel extends DebugPanel
                 continue;
             }
 
-            $leaf = true;
-            foreach ($rules as $value) {
-                if (is_array($value)) {
-                    $leaf = false;
-                    break;
-                }
-            }
+            $leaf = array_all($rules, fn($value): bool => !is_array($value));
 
             if ($leaf) {
                 $flat[$path] = $rules;
@@ -172,7 +166,7 @@ class ValidationPanel extends DebugPanel
      */
     public function data(): array
     {
-        return ['errors' => array_values((array)($this->_data['errors'] ?? []))];
+        return ['errors' => array_values((array)($this->data['errors'] ?? []))];
     }
 
     /**
@@ -182,6 +176,6 @@ class ValidationPanel extends DebugPanel
      */
     public function summary(): string
     {
-        return (string)count((array)($this->_data['errors'] ?? []));
+        return (string)count((array)($this->data['errors'] ?? []));
     }
 }

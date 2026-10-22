@@ -11,7 +11,6 @@ use Cake\Routing\RouteBuilder;
  */
 $routes->plugin(
     'Crustum/DebugBar',
-    ['path' => '/debug-bar'],
     function (RouteBuilder $builder): void {
         $builder->setExtensions('json');
         $builder->setRouteClass(DashedRoute::class);
@@ -86,7 +85,6 @@ $routes->plugin(
 
         $builder->scope(
             '/mail-preview',
-            ['controller' => 'MailPreview'],
             function (RouteBuilder $routes): void {
                 $routes->connect('/', ['action' => 'index']);
                 $routes->connect('/preview', ['action' => 'email']);
@@ -97,11 +95,13 @@ $routes->plugin(
                     ['action' => 'attachment'],
                     ['pass' => ['panel', 'id', 'index']],
                 );
-            }
+            },
+            ['controller' => 'MailPreview']
         );
 
         $builder->get('/', ['controller' => 'Dashboard', 'action' => 'index']);
         $builder->get('/dashboard', ['controller' => 'Dashboard', 'action' => 'index']);
         $builder->post('/dashboard/reset', ['controller' => 'Dashboard', 'action' => 'reset']);
-    }
+    },
+    ['path' => '/debug-bar']
 );
