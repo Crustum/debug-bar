@@ -60,4 +60,26 @@ class LogsPanelTest extends TestCase
         // markers, a lingering bg-transparent would win the cascade.
         $this->assertStringNotContainsString('dk:bg-transparent dk:hover', $body);
     }
+
+    /**
+     * Log context renders through the shared debug tree.
+     *
+     * @return void
+     */
+    public function testLogContextRendersTree(): void
+    {
+        $logger = new DebugBarLog();
+        $logger->log('error', 'Boom', ['user_id' => 7]);
+
+        $this->seedRequest(['Log' => ['logger' => $logger]]);
+        $panels = $this->fetchTable('Crustum/DebugBar.Panels');
+        $panel = $panels->find()->where(['panel' => 'Log'])->firstOrFail();
+
+        $this->get('/debug-bar/panels/view/' . $panel->id);
+        $this->assertResponseOk();
+        $body = (string)$this->_response->getBody();
+
+        $this->assertStringContainsString('data-dk-tree-scope', $body);
+        $this->assertStringContainsString('user_id', $body);
+    }
 }

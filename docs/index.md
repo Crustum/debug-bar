@@ -627,7 +627,10 @@ The HTTP Client panel instruments every application
 opens Request/Response tabs with method, host, path, query, status,
 duration, bounded headers and bodies, plus copy buttons for the URL,
 either body, and a safe cURL (redacted values stay redacted in the
-copy). Requests that never complete stay pending and report as failed with
+copy). Header values under sensitive names (`authorization`, `token`,
+`secret`, …) are masked at capture via `RedactionService::maskSensitive`,
+so stored rows never carry cleartext credentials. Requests that never
+complete stay pending and report as failed with
 no response; a response without a real HTTP status counts as failed too.
 Slow means at or above `slow_http_request_ms` (default `250`).
 
@@ -646,8 +649,11 @@ duration — and never call a missing result a performance win.
 
 Search messages, filter by level (All, Needs attention, then each) and
 channel, and open a group for its severity, channel, from-start offset,
-related exception link, context, occurrences, and source. Repeats collapse
-into `N records in M entries` instead of one row per line. Because
+related exception link, context, occurrences, and source. Context is
+captured exported the Variables way (expandable inner objects, sensitive
+leaves masked) and renders in the detail pane through the shared tree;
+repeats collapse into `N records in M entries` instead of one row per
+line, keeping the first non-empty context per message. Because
 entries belong to one profile, there is no large log file to search by
 time.
 

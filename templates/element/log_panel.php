@@ -12,10 +12,11 @@
  * script in `Requests/view` owns search/filter/selection over the
  * `data-dk-*` hooks. Styling rides the shared `dk:` Tailwind utilities.
  *
- * CakePHP notes (no fake data): the log engine keeps no channel, context,
- * stack or per-record timing, so the channel select, context, related
- * exception and source sections stay out until the backend captures them;
- * wall-clock timestamps render as captured.
+ * CakePHP notes (no fake data): the log engine keeps no channel or
+ * per-record timing, so the channel select, related exception and source
+ * sections stay out until the backend captures them; context renders from
+ * the captured record (`VarExporter`, sensitive leaves masked) with the
+ * shared `debug_tree`, and wall-clock timestamps render as captured.
  *
  * @var \Crustum\DebugBar\View\AjaxView $this
  * @var \Crustum\DebugBar\Log\Engine\DebugBarLog $logger
@@ -39,8 +40,21 @@ foreach ($levels as $level => $entries) {
         $entry = (array)$entry;
         $message = (string)($entry[1] ?? '');
         $time = (string)($entry[0] ?? '');
+        $context = (array)($entry[3] ?? []);
         if (!isset($byMessage[$message])) {
-            $byMessage[$message] = ['message' => $message, 'count' => 0, 'first' => $time, 'last' => $time];
+            $byMessage[$message] = [
+                'message' => $message,
+                'count' => 0,
+                'first' => $time,
+                'last' => $time,
+                'context' => $context,
+                'context_count' => $context !== [] ? 1 : 0,
+            ];
+        } elseif ($context !== []) {
+            $byMessage[$message]['context_count']++;
+            if ($byMessage[$message]['context'] === []) {
+                $byMessage[$message]['context'] = $context;
+            }
         }
         $byMessage[$message]['count']++;
         if ($time !== '') {
@@ -90,7 +104,7 @@ $severityClass = static function (string $level): string {
     <?php else : ?>
     <?php
     ob_start();
-    ?>
+        ?>
     <p
         data-dk-log-visible-summary
         aria-live="polite"
@@ -145,7 +159,7 @@ $severityClass = static function (string $level): string {
     <?php
     $controls = (string)ob_get_clean();
     ob_start();
-    ?>
+        ?>
     <div data-dk-logs-list aria-label="Log entries">
         <?php foreach ($groups as $index => $group) :
             $level = strtolower((string)$group['level']);
@@ -195,7 +209,7 @@ $severityClass = static function (string $level): string {
     <?php
     $listBody = (string)ob_get_clean();
     ob_start();
-    ?>
+        ?>
     <div data-dk-detail-pane class="dk:min-w-0" id="debugbar-log-detail">
         <div data-dk-detail-empty class="dk:min-w-0 dk:p-3 dk:sm:p-4" hidden>Choose a log entry to inspect its evidence.</div>
         <?php foreach ($groups as $index => $group) :
@@ -240,13 +254,30 @@ $severityClass = static function (string $level): string {
                         </div>
                     </dl>
                 </section>
+                <?php $context = (array)($group['context'] ?? []); ?>
+                <?php if ($context !== []) : ?>
+                <section data-dk-log-detail-group="context" class="dk:border-t dk:border-zinc-200/90 dk:p-3 dk:sm:p-4 dk:dark:border-zinc-800">
+                    <h4 class="dk:mb-2 dk:text-sm dk:font-semibold">Context<?php if ((int)($group['context_count'] ?? 0) > 1) :
+                        ?> <span class="dk:text-xs dk:font-normal dk:text-zinc-500">first of <?= (int)$group['context_count'] ?> records with context</span><?php
+                                                                           endif; ?></h4>
+                    <div data-dk-tree-scope class="dk:min-w-0">
+                        <?= $this->element('Crustum/DebugBar.ui/tree_filter', [
+                            'label' => 'Search context',
+                            'placeholder' => 'Search context keys and values',
+                        ]) ?>
+                        <?= $this->element('Crustum/DebugBar.ui/debug_tree', [
+                            'nodes' => $context,
+                        ]) ?>
+                    </div>
+                </section>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
     <?php
     $detailBody = (string)ob_get_clean();
-    ?>
+        ?>
     <?= $this->element('Crustum/DebugBar.ui/inspector_workspace', [
         'mode' => 'split',
         'frame' => 'top',

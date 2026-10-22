@@ -36,6 +36,20 @@ bottom-right corner.
   ignores them.
 - Every scalar setting in `config/debug_bar.php` can now be overridden
   via environment variables (`DEBUGBAR_*`).
+- Log context capture: `DebugBarLog` exports record context via
+  `VarExporter` (expandable inner objects, sensitive leaves masked,
+  JSON-safe) and interpolates `{placeholder}` values into the message.
+  The Logs inspector renders context in the detail pane through the
+  shared `debug_tree` with search; collapsed `N records in M entries`
+  groups keep the first non-empty context and report how many records
+  carry one. Empty contexts stay `[]`.
+
+### Fixed
+
+- HTTP Client panel redaction: request and response header values under
+  sensitive names (`authorization`, `token`, `secret`, …) are masked via
+  `RedactionService::maskSensitive` at capture, so stored rows and the
+  safe-cURL copy never carry cleartext credentials.
 
 ## [1.0.0]
 

@@ -23,7 +23,10 @@ use Throwable;
  * changes needed. Requests that never complete (exceptions) stay pending
  * and are reported as failed with no response; a response without a real
  * HTTP status counts as failed too. Bodies are truncated at capture time;
- * only shapes and counts reach the stored row.
+ * only shapes and counts reach the stored row. Header values under
+ * sensitive names (`authorization`, `token`, `secret`, …) are masked via
+ * `RedactionService::maskSensitive`, so stored rows never carry cleartext
+ * credentials into the inspector or the safe-cURL copy.
  */
 class HttpClientPanel extends DebugPanel
 {
@@ -77,7 +80,7 @@ class HttpClientPanel extends DebugPanel
             'port' => $uri->getPort(),
             'path' => $uri->getPath(),
             'query' => $uri->getQuery(),
-            'request_headers' => $this->headers($request),
+            'request_headers' => $redaction->maskSensitive($this->headers($request)),
             'request_body' => mb_strcut($body, 0, $maxString),
             'request_truncated' => strlen($body) > $maxString,
             'start' => microtime(true),
@@ -116,7 +119,7 @@ class HttpClientPanel extends DebugPanel
         $responseBody = '';
         if ($response instanceof ResponseInterface) {
             $status = $response->getStatusCode();
-            $responseHeaders = $this->headerMap($response->getHeaders());
+            $responseHeaders = $redaction->maskSensitive($this->headerMap($response->getHeaders()));
             try {
                 $responseBody = (string)$response->getBody();
             } catch (Throwable) {

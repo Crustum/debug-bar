@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\DebugBar\Log\Engine;
 
 use Cake\Log\Engine\BaseLog;
+use Crustum\DebugBar\Service\VarExporter;
 use Stringable;
 
 /**
@@ -21,7 +22,11 @@ class DebugBarLog extends BaseLog
     protected array $_logs = [];
 
     /**
-     * Captures log messages in memory
+     * Captures log messages in memory.
+     *
+     * Context is exported the Variables way (`VarExporter`: expandable
+     * inner objects, sensitive leaves masked, JSON-safe) so the inspector
+     * can render it without executing anything. Empty contexts stay `[]`.
      *
      * @param mixed $level The type of message being logged.
      * @param \Stringable|string $message The message being logged.
@@ -32,7 +37,12 @@ class DebugBarLog extends BaseLog
     {
         $this->_logs[$level] ??= [];
 
-        $this->_logs[$level][] = [date('Y-m-d H:i:s'), $this->interpolate($message), microtime(true)];
+        $this->_logs[$level][] = [
+            date('Y-m-d H:i:s'),
+            $this->interpolate($message, $context),
+            microtime(true),
+            $context === [] ? [] : VarExporter::export($context),
+        ];
     }
 
     /**

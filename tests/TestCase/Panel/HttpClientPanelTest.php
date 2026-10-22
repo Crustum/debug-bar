@@ -149,6 +149,42 @@ class HttpClientPanelTest extends TestCase
     }
 
     /**
+     * Sensitive header values are masked at capture, never stored raw.
+     *
+     * @return void
+     */
+    public function testMasksSensitiveHeaders(): void
+    {
+        $panel = new HttpClientPanel();
+        $request = new ClientRequest(
+            'https://example.com/api',
+            'GET',
+            ['Authorization' => 'Bearer secret-token', 'X-Test' => 'yes'],
+        );
+        $panel->captureSend(new Event('HttpClient.beforeSend', new Client(), ['request' => $request]));
+        $panel->captureResponse(new ClientEvent(
+            'HttpClient.afterSend',
+            new Client(),
+            [
+                'request' => $request,
+                'response' => new ClientResponse(
+                    ['HTTP/1.1 200 OK', 'Authorization: Bearer response-secret'],
+                    '{"ok":true}',
+                ),
+            ],
+        ));
+
+        $data = $panel->data();
+        $entry = $data['requests'][0];
+
+        $this->assertSame('********', $entry['request_headers']['Authorization'] ?? null);
+        $this->assertSame('yes', $entry['request_headers']['X-Test'] ?? null);
+        $this->assertSame('********', $entry['response']['headers']['Authorization'] ?? null);
+        $this->assertStringNotContainsString('secret-token', $entry['curl']);
+        $this->assertStringContainsString('[redacted]', $entry['curl']);
+    }
+
+    /**
      * Collection drains the inbox so workers never bleed across requests.
      *
      * @return void
