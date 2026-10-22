@@ -93,11 +93,11 @@ class ValidationPanel extends DebugPanel
         int $depth = 0,
     ): array {
         $seen ??= new SplObjectStorage();
-        if ($seen->contains($entity) || $depth > 5) {
+        if ($seen->offsetExists($entity) || $depth > 5) {
             return [];
         }
 
-        $seen->attach($entity);
+        $seen->offsetSet($entity);
         $errors = $entity->getErrors();
 
         foreach ($entity->getVisible() as $property) {
