@@ -25,13 +25,13 @@
         "cakephp/authorization": "4.x-dev",
         "cakedc/cakephp-phpstan": "5.next-cake6-dev",
         "cakephp/cakephp-codesniffer": "6.x-dev",
+        "crustum/mcp": "^2.x-dev",
         "crustum/plugin-manifest": "2.x-dev",
         "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^12.5 | ^13.0",
         "rector/rector": "^2.7"
     },
     "suggest": {
-        "_crustum/mcp": "^2.x-dev",
         "crustum/mcp": "Local STDIO MCP server with bounded diagnostic tools",
         "crustum/plugin-manifest": "CakePHP plugin installer",
         "crustum/cakephp-attribute-resolver": "Attributes inspection panel (optional)"

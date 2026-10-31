@@ -8,7 +8,6 @@ use Authentication\Authenticator\ResultInterface;
 use Authentication\Identity;
 use Cake\Console\Arguments;
 use Cake\Controller\Controller;
-use Cake\Error\Debugger;
 use Cake\Event\Event;
 use Cake\Http\ServerRequest;
 use Cake\ORM\Entity;
@@ -263,17 +262,26 @@ class RequestPanelTest extends TestCase
     }
 
     /**
-     * Test that the output mask is restored after capture.
+     * Test that shutdown masks secrets without global side effects.
+     *
+     * Core no longer ships output masks — `maskSensitive()` owns redaction —
+     * so shutdown must leave request state observable and repeatable.
      *
      * @return void
      */
-    public function testShutdownRestoresOutputMask(): void
+    public function testShutdownHasNoGlobalSideEffects(): void
     {
-        $mask = Debugger::outputMask();
         $controller = new Controller(new ServerRequest(['url' => '/']));
         $this->panel->shutdown(new Event('Controller.shutdown', $controller));
+        $first = $this->panel->data();
 
-        $this->assertSame($mask, Debugger::outputMask());
+        $this->panel->shutdown(new Event('Controller.shutdown', $controller));
+        $second = $this->panel->data();
+
+        $this->assertSame(array_keys($first), array_keys($second));
+        $this->assertSame($first['context'], $second['context']);
+        $this->assertSame($first['fullUrl'], $second['fullUrl']);
+        $this->assertSame($first['auth'], $second['auth']);
     }
 
     /**

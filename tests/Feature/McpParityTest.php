@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Test\Feature;
 
-use Cake\Core\Container;
+use Cake\Container\Container;
 use Cake\TestSuite\IntegrationTestTrait;
 use Cake\TestSuite\TestCase;
 use Crustum\DebugBar\Mcp\DebugBarServer;

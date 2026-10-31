@@ -36,6 +36,7 @@ final class DebugBarManifest
                 false,
             ),
             ManifestOps::manifestBootstrapAppend(
+                $plugin,
                 "if (file_exists(CONFIG . 'debug_bar.php')) {\n    Configure::load('debug_bar', 'default');\n}",
                 '// DebugBar Plugin Configuration',
             ),
@@ -46,7 +47,7 @@ final class DebugBarManifest
                     'reason' => 'MCP runtime for cake-debugbar (Registrar, ContainerInvoker, mcp start)',
                 ],
             ]),
-            ManifestOps::manifestStarRepo($plugin, 'Crustum/DebugBar'),
+            ManifestOps::manifestStarRepo($plugin, 'crustum/debug-bar'),
         );
     }
 }

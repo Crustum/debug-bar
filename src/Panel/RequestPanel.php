@@ -539,29 +539,21 @@ class RequestPanel extends DebugPanel
         $authResult = $request->getAttribute('authenticationResult')
             ?? $request->getAttribute('authentication');
 
-        $outputMask = Debugger::outputMask();
-        $narrowedMask = $outputMask;
-        unset($narrowedMask['prefix']);
-        Debugger::setOutputMask($narrowedMask, false);
-        try {
-            $attributes = [];
-            foreach ($request->getAttributes() as $attr => $value) {
-                $node = NodeFlattener::maskSensitive(
-                    Debugger::exportVarAsNodes($value, $maxDepth),
+        $attributes = [];
+        foreach ($request->getAttributes() as $attr => $value) {
+            $node = NodeFlattener::maskSensitive(
+                Debugger::exportVarAsNodes($value, $maxDepth),
+            );
+            try {
+                serialize($node);
+            } catch (Exception) {
+                $node = Debugger::exportVarAsNodes(
+                    get_debug_type($value),
+                    $maxDepth,
                 );
-                try {
-                    serialize($node);
-                } catch (Exception) {
-                    $node = Debugger::exportVarAsNodes(
-                        get_debug_type($value),
-                        $maxDepth,
-                    );
-                }
-
-                $attributes[$attr] = $node;
             }
-        } finally {
-            Debugger::setOutputMask($outputMask, false);
+
+            $attributes[$attr] = $node;
         }
 
         $httpHeaders = [];
