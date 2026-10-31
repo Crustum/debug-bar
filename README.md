@@ -11,7 +11,7 @@ The shell is dependency-free (vanilla ES modules, no jQuery, no Livewire) with a
 
 ## Requirements
 
-* PHP 8.2+
+* PHP 8.5+
 * SQLite (`pdo_sqlite`) for the default `debug_bar` store, or a dedicated
   `debug_bar` datasource.
 

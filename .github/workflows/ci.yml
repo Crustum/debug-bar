@@ -5,6 +5,7 @@ on:
     branches:
       - 'main'
       - '1.x'
+      - '2.x'
   pull_request:
     branches:
       - '*'
@@ -20,12 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php-version: '8.3'
+          - php-version: '8.5'
             dependencies: lowest
-          - php-version: '8.3'
-            dependencies: highest
-          - php-version: '8.4'
-            dependencies: highest
           - php-version: '8.5'
             dependencies: highest
 
@@ -92,7 +89,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.4'
+        php-version: '8.5'
         extensions: mbstring, intl, sqlite3, pdo_sqlite
         coverage: none
 
