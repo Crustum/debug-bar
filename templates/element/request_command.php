@@ -27,6 +27,7 @@
  * @var float $durationMs Measured duration
  * @var mixed $result Command result, scalar or null
  */
+use Crustum\DebugBar\Service\RequestFacts;
 use function Cake\Core\h;
 
 $command = (string)($command ?? '');
@@ -189,7 +190,7 @@ $commandDetailGroups = [
                     <dl class="dk:mt-2 dk:grid dk:max-w-3xl dk:grid-cols-2 dk:gap-x-5 dk:gap-y-4 dk:text-sm dk:leading-5 dk:lg:grid-cols-3">
                         <div class="dk:min-w-0">
                             <dt class="dk:text-xs dk:text-zinc-500 dk:dark:text-zinc-400">Duration</dt>
-                            <dd class="dk:mt-1 dk:tabular-nums"><?= h(number_format($durationMs, 1) . ' ms') ?></dd>
+                            <dd class="dk:mt-1 dk:tabular-nums"><?= h(RequestFacts::formatDuration($durationMs)) ?></dd>
                         </div>
                         <div class="dk:min-w-0">
                             <dt class="dk:text-xs dk:text-zinc-500 dk:dark:text-zinc-400">Result</dt>

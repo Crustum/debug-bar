@@ -332,11 +332,6 @@ $disclosureCountClass = 'dk:shrink-0 dk:text-xs dk:font-normal dk:tabular-nums d
                             <p class="dk:mt-0.5 dk:max-w-3xl dk:text-xs dk:leading-5 dk:text-zinc-500 dk:dark:text-zinc-400">Each row is one completed write. If a write is unexpected, inspect its changed fields and application source.</p>
                         </header>
                         <div class="dk:mt-3 dk:border-y dk:border-zinc-200/90 dk:dark:border-zinc-800">
-                            <div class="dk:hidden dk:grid-cols-[6rem_4rem_minmax(0,1fr)] dk:gap-3 dk:border-b dk:border-zinc-200/90 dk:py-2 dk:text-xs dk:font-semibold dk:text-zinc-400 dk:dark:border-zinc-800 dk:sm:grid">
-                                <span>Operation</span>
-                                <span>Record</span>
-                                <span>Source</span>
-                            </div>
                             <div class="dk:divide-y dk:divide-zinc-200/90 dk:dark:divide-zinc-800">
                                 <?php foreach ($writes as $write) :
                                     $write = (array)$write;
@@ -346,28 +341,33 @@ $disclosureCountClass = 'dk:shrink-0 dk:text-xs dk:font-normal dk:tabular-nums d
                                     $changed = (array)($write['changes'] ?? $write['changed'] ?? []);
                                     $atMs = $write['at_ms'] ?? null;
                                     ?>
-                                <article class="dk:grid dk:min-w-0 dk:gap-2 dk:border-l-0 dk:bg-transparent dk:px-0 dk:py-2.5 dk:text-xs dk:text-zinc-950 dk:dark:text-white dk:sm:grid-cols-[6rem_4rem_minmax(0,1fr)] dk:sm:items-center dk:sm:gap-3">
+                                <article class="dk:flex dk:min-w-0 dk:flex-col dk:gap-1.5 dk:border-l-0 dk:bg-transparent dk:px-0 dk:py-2.5 dk:text-xs dk:text-zinc-950 dk:dark:text-white">
                                     <span class="dk:text-xs dk:font-semibold">
-                                        <span class="dk:text-zinc-400 dk:sm:hidden">Operation </span><?= h($operation) ?>
-                                    </span>
-                                    <span class="dk:min-w-0 dk:break-all dk:text-sm dk:font-semibold<?= is_numeric($writeKey) ? ' dk:font-mono dk:tabular-nums' : '' ?>">
-                                        <span class="dk:font-sans dk:text-zinc-400 dk:sm:hidden">Record </span><?= h($writeKey !== '' ? $writeKey : '—') ?>
+                                        <span class="dk:font-medium dk:text-zinc-400">Operation </span><?= h($operation) ?>
                                     </span>
                                     <?php if ($writeSource !== '') :
                                         $writeParts = CallsiteCapture::split($writeSource);
                                         $writeSourceFile = $writeParts['file'];
                                         $writeSourceLine = $writeParts['line'];
                                         ?>
-                                    <?= $this->element('Crustum/DebugBar.ui/source_ref', [
-                                        'file' => $writeSourceFile,
-                                        'line' => $writeSourceLine,
-                                        'short' => basename(str_replace('\\', '/', $writeSourceFile)) . ($writeSourceLine !== null ? ':' . $writeSourceLine : ''),
-                                        'class' => 'dk:justify-self-start dk:text-zinc-500 dk:dark:text-zinc-400',
-                                    ]) ?>
+                                    <span class="dk:flex dk:min-w-0 dk:flex-wrap dk:items-baseline dk:gap-x-2">
+                                        <span class="dk:shrink-0 dk:font-medium dk:text-zinc-400">Source</span>
+                                        <?= $this->element('Crustum/DebugBar.ui/source_ref', [
+                                            'file' => $writeSourceFile,
+                                            'line' => $writeSourceLine,
+                                            'short' => basename(str_replace('\\', '/', $writeSourceFile)) . ($writeSourceLine !== null ? ':' . $writeSourceLine : ''),
+                                            'class' => 'dk:min-w-0 dk:break-all dk:text-zinc-500 dk:dark:text-zinc-400',
+                                        ]) ?>
+                                    </span>
                                     <?php else : ?>
-                                    <span class="dk:text-xs dk:text-zinc-400">—</span>
+                                    <span class="dk:text-xs">
+                                        <span class="dk:font-medium dk:text-zinc-400">Source </span><span class="dk:text-zinc-400">—</span>
+                                    </span>
                                     <?php endif; ?>
-                                    <details class="dk:sm:col-span-3 <?= h($disclosureClass) ?>">
+                                    <span class="dk:min-w-0 dk:break-all dk:text-sm dk:font-semibold<?= is_numeric($writeKey) ? ' dk:font-mono dk:tabular-nums' : '' ?>">
+                                        <span class="dk:text-xs dk:font-medium dk:text-zinc-400">Record </span><?= h($writeKey !== '' ? $writeKey : '—') ?>
+                                    </span>
+                                    <details class="<?= h($disclosureClass) ?>">
                                         <summary class="<?= h($disclosureSummaryClass) ?>">
                                             <?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'chevron-down', 'size' => '3.5', 'class' => 'dk:shrink-0 dk:-rotate-90 dk:text-zinc-400 dk:transition-transform dk:group-open/disclosure:rotate-0 dk:motion-reduce:transition-none']) ?>
                                             <span class="dk:min-w-0 dk:flex-1">Changed fields</span>

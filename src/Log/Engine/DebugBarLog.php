@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Crustum\DebugBar\Log\Engine;
 
 use Cake\Log\Engine\BaseLog;
+use Crustum\DebugBar\Service\IgnoredOperations;
 use Crustum\DebugBar\Service\VarExporter;
 use Stringable;
 
@@ -35,6 +36,16 @@ class DebugBarLog extends BaseLog
      */
     public function log(mixed $level, Stringable|string $message, array $context = []): void
     {
+        // Query echoes for ignored observer tables stay out of the panel
+        // (host log files keep everything): the driver logger mirrors
+        // every statement to Cake Log, duplicating the SQL log row.
+        if (is_string($message) && str_starts_with($message, 'connection=')) {
+            $sql = (string)preg_replace('/\Aconnection=[^\n]*\n?/', '', $message);
+            if ($sql !== '' && IgnoredOperations::isIgnoredQuery($sql)) {
+                return;
+            }
+        }
+
         $this->_logs[$level] ??= [];
 
         $this->_logs[$level][] = [

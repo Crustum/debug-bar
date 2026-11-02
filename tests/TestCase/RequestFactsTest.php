@@ -144,6 +144,22 @@ class RequestFactsTest extends TestCase
     }
 
     /**
+     * Long runs render hours with minutes and seconds, seconds stay whole.
+     *
+     * @return void
+     */
+    public function testFormatDuration(): void
+    {
+        $this->assertSame('9.12 s', RequestFacts::formatDuration(9120.0));
+        $this->assertSame('1.50 s', RequestFacts::formatDuration(1500.0));
+        $this->assertSame('1 min 1 s', RequestFacts::formatDuration(61000.0));
+        $this->assertSame('1 h 1 min 15 s', RequestFacts::formatDuration(3674615.2));
+        $this->assertSame('1 h', RequestFacts::formatDuration(3600000.0));
+        $this->assertSame('65.6 ms', RequestFacts::formatDuration(65.6));
+        $this->assertSame('—', RequestFacts::formatDuration(-1.0));
+    }
+
+    /**
      * Log levels flatten to one entry count.
      *
      * @return void

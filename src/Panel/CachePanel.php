@@ -13,7 +13,7 @@ use Crustum\DebugBar\DebugPanel;
  *
  * @ported-from \DebugKit\Panel\CachePanel
  */
-class CachePanel extends DebugPanel
+class CachePanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Array log collecting cache operation traces.
@@ -87,5 +87,44 @@ class CachePanel extends DebugPanel
             'metrics' => $metrics,
             'logs' => $logs,
         ];
+    }
+
+    /**
+     * Builds cache operation rows for the waterfall.
+     *
+     * @param array<string, mixed> $data Cache panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['logs'] ?? [])) as $index => $line) {
+            $line = (string)$line;
+            $parsed = DebugEngine::parseLine($line);
+            $when = 0.0;
+            if (preg_match('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?( [+-]\d{2}:?\d{2})?/', $line, $matches)) {
+                $parsedTime = strtotime($matches[1] . ($matches[3] ?? ''));
+                if ($parsedTime !== false) {
+                    $fraction = isset($matches[2]) ? (float)('0.' . $matches[2]) : 0.0;
+                    $when = (float)$parsedTime + $fraction;
+                }
+            }
+
+            $label = $parsed['operation'] !== ''
+                ? trim($parsed['operation'] . ($parsed['key'] !== '' ? ' `' . $parsed['key'] . '`' : ''))
+                : mb_strimwidth($line, 0, 120, '…');
+            $events[] = [
+                'at' => $when > 0 ? max(0.0, ($when - $requestStart) * 1000) : 0.0,
+                'duration_ms' => is_numeric($parsed['duration']) ? (float)$parsed['duration'] : 0.0,
+                'type' => 'cache',
+                'label' => mb_strimwidth($label, 0, 120, '…'),
+                'panel' => 'cache',
+                'source' => null,
+                'ref' => 'cache-' . $index,
+            ];
+        }
+
+        return $events;
     }
 }

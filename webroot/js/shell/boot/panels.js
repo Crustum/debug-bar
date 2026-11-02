@@ -14,6 +14,7 @@
 const GENERIC_CLICK_HOOKS = [
   'data-dk-mini-toggle',
   'data-dk-open-inspector',
+  'data-dk-timeline-back',
   'data-dk-open-palette',
   'data-dk-window',
   'data-dk-request-trigger',
@@ -505,6 +506,17 @@ export function selectPanelRecord(target, root, hooks = {}) {
   if (!config) {
     return false;
   }
+  if (
+    target &&
+    typeof target.hasAttribute === 'function' &&
+    target.hasAttribute('data-dk-timeline-entry') &&
+    typeof target.getAttribute === 'function'
+  ) {
+    const timelineKey = target.getAttribute('data-dk-timeline-key') ?? '';
+    if (timelineKey !== '') {
+      lastTimelineRowKey = timelineKey;
+    }
+  }
   const setRowPressed = hooks.setRowPressed;
   const paintCodeBlocks = hooks.paintCodeBlocks;
   const panel = target.closest ? target.closest(config.panel) : null;
@@ -548,6 +560,358 @@ export function selectPanelRecord(target, root, hooks = {}) {
       }
     }
   }
+
+  return true;
+}
+
+/**
+ * Derives the record key attribute from a row's entry attribute.
+ *
+ * Panels mark selectable rows with `data-dk-<name>-entry` (or `-item`)
+ * and carry the stable record id in the matching `-key` attribute. The
+ * timeline `ref` must equal that key, so any panel — core or a future
+ * third-party one — is deep-linkable with no registry and no map.
+ *
+ * @param {object} row Row element.
+ * @return {string|null} Key attribute name or null.
+ */
+function recordKeyAttr(row) {
+  if (!row || typeof row.getAttributeNames !== 'function') {
+    return null;
+  }
+  let names = [];
+  try {
+    names = row.getAttributeNames();
+  } catch (error) {
+    return null;
+  }
+  for (const name of names) {
+    if (typeof name !== 'string') {
+      continue;
+    }
+    if (name.endsWith('-entry')) {
+      return name.slice(0, -'entry'.length) + 'key';
+    }
+    if (name.endsWith('-item')) {
+      return name.slice(0, -'item'.length) + 'key';
+    }
+  }
+
+  return null;
+}
+
+function findInspectorSection(root, inspectorKey) {
+  if (!root || typeof root.querySelectorAll !== 'function') {
+    return null;
+  }
+  const sections = root.querySelectorAll('[data-dk-inspector-panel]');
+  for (const section of sections) {
+    if (
+      section &&
+      typeof section.getAttribute === 'function' &&
+      section.getAttribute('data-dk-inspector-panel') === inspectorKey
+    ) {
+      return section;
+    }
+  }
+
+  return null;
+}
+
+function pressRecordRow(row) {
+  try {
+    if (row && typeof row.click === 'function') {
+      row.click();
+    }
+  } catch (error) {}
+  try {
+    if (row && typeof row.scrollIntoView === 'function') {
+      row.scrollIntoView({ block: 'nearest' });
+    }
+  } catch (error) {}
+}
+
+function revealQueryRecord(section, want) {
+  if (
+    !section ||
+    typeof section.querySelectorAll !== 'function' ||
+    want === ''
+  ) {
+    return false;
+  }
+  const rows = section.querySelectorAll('[data-dk-query-item]');
+  for (const row of rows) {
+    if (
+      row &&
+      typeof row.getAttribute === 'function' &&
+      row.getAttribute('data-dk-execution') === want
+    ) {
+      pressRecordRow(row);
+
+      return true;
+    }
+  }
+  const blocks = section.querySelectorAll('[data-dk-query-execution]');
+  for (const block of blocks) {
+    if (
+      !block ||
+      typeof block.getAttribute !== 'function' ||
+      block.getAttribute('data-dk-query-execution') !== want
+    ) {
+      continue;
+    }
+    const row =
+      block && typeof block.closest === 'function'
+        ? block.closest('[data-dk-query-item]')
+        : null;
+    if (!row) {
+      continue;
+    }
+    pressRecordRow(row);
+    selectQueryExecution(section, row, want);
+
+    return true;
+  }
+
+  return false;
+}
+
+function selectQueryExecution(section, row, want) {
+  try {
+    const rowKey =
+      row && typeof row.getAttribute === 'function'
+        ? row.getAttribute('data-dk-query-key') ?? ''
+        : '';
+    if (rowKey === '') {
+      return;
+    }
+    const details = section.querySelectorAll('[data-dk-query-detail]');
+    for (const detail of details) {
+      if (
+        !detail ||
+        typeof detail.getAttribute !== 'function' ||
+        detail.getAttribute('data-dk-query-detail') !== rowKey
+      ) {
+        continue;
+      }
+      const select =
+        typeof detail.querySelector === 'function'
+          ? detail.querySelector('select')
+          : null;
+      if (!select || !('value' in select)) {
+        return;
+      }
+      select.value = want;
+      if (
+        typeof Event === 'function' &&
+        typeof select.dispatchEvent === 'function'
+      ) {
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      return;
+    }
+  } catch (error) {}
+}
+
+/**
+ * Reveals one stored record inside its inspector.
+ *
+ * Used by timeline "Open inspector" jumps: after the tab opens, the exact
+ * row is pressed (opening its detail) instead of leaving the first row
+ * selected. Unknown inspectors, missing rows and missing refs resolve to
+ * false so the caller keeps the plain tab open.
+ *
+ * @param {object} root Shell root to search.
+ * @param {string} inspectorKey Inspector key from the timeline row.
+ * @param {string|number|null} ref Stored row reference.
+ * @return {boolean} True when a row was pressed.
+ */
+export function revealInspectorRecord(root, inspectorKey, ref) {
+  if (typeof inspectorKey !== 'string' || inspectorKey === '') {
+    return false;
+  }
+  const want = ref === null || ref === undefined ? '' : String(ref);
+  if (want === '') {
+    return false;
+  }
+  const section = findInspectorSection(root, inspectorKey);
+  if (!section) {
+    return false;
+  }
+  if (inspectorKey === 'queries') {
+    return revealQueryRecord(section, want);
+  }
+  const rows =
+    typeof section.querySelectorAll === 'function'
+      ? section.querySelectorAll('button')
+      : [];
+  for (const row of rows) {
+    const attr = recordKeyAttr(row);
+    if (
+      attr !== null &&
+      typeof row.getAttribute === 'function' &&
+      row.getAttribute(attr) === want
+    ) {
+      pressRecordRow(row);
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Last pressed timeline row key, restored on the way back.
+ *
+ * Inspector switches always land on the list, so returning to the
+ * timeline would drop the selected row. Remembering the pressed key
+ * here lets the return path re-press it without a fresh click.
+ *
+ * @type {string|null}
+ */
+let lastTimelineRowKey = null;
+
+/**
+ * Re-presses the last selected timeline row.
+ *
+ * Runs after focus workspaces reset to the list: when the timeline tab
+ * is visible again, its previous selection (and detail) comes back, so
+ * an Open-inspector jump and back feels like a round trip instead of
+ * a reset.
+ *
+ * @param {object} root Shell root to search.
+ * @param {object} hooks Selection hooks (setRowPressed, paintCodeBlocks).
+ * @return {boolean} True when a row was re-pressed.
+ */
+export function restoreTimelineSelection(root, hooks = {}) {
+  if (
+    !lastTimelineRowKey ||
+    !root ||
+    typeof root.querySelector !== 'function'
+  ) {
+    return false;
+  }
+  const key = lastTimelineRowKey;
+  const escaped =
+    typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(key)
+      : key;
+  const row = root.querySelector('[data-dk-timeline-key="' + escaped + '"]');
+  if (!row) {
+    return false;
+  }
+  const section =
+    typeof row.closest === 'function'
+      ? row.closest('[data-dk-inspector-panel]')
+      : null;
+  if (
+    section &&
+    (section.hidden === true ||
+      (typeof section.hasAttribute === 'function' &&
+        section.hasAttribute('hidden')))
+  ) {
+    return false;
+  }
+
+  return selectPanelRecord(row, root, hooks);
+}
+
+/**
+ * Finds the viewport box of the row's actual scroll container.
+ *
+ * The nearest `[data-dk-inspector-content]`/`[data-dk-inspector-focus-list]`
+ * ancestor is not always the scroller: the focus list wraps the whole
+ * list height while the outer content scrolls. Comparing the row against
+ * a full-height box reads every row as "visible" and the return trip
+ * never scrolls. The scroller is the first ancestor that actually
+ * overflows (`scrollHeight` beyond `clientHeight`).
+ *
+ * @param {object|null} row Pressed row element.
+ * @return {object|null} Viewport box, or null when no scroller scrolls.
+ */
+function scrollerBoxOf(row) {
+  let node =
+    row == null
+      ? null
+      : (row.parentNode ?? row.parentElement ?? row.parent ?? null);
+  while (node) {
+    try {
+      const height = node.scrollHeight;
+      const visible = node.clientHeight;
+      if (
+        typeof height === 'number' &&
+        typeof visible === 'number' &&
+        height - visible > 1 &&
+        typeof node.getBoundingClientRect === 'function'
+      ) {
+        return node.getBoundingClientRect();
+      }
+    } catch (error) {}
+    node = node.parentNode ?? node.parentElement ?? node.parent ?? null;
+  }
+
+  return null;
+}
+
+/**
+ * Scrolls a selected row into the middle of its scroll container.
+ *
+ * `scrollIntoView({block: 'nearest'})` parks the row at the bottom edge,
+ * so returning to the timeline leaves the selection glued to the screen
+ * edge. Centering lands on meaningful content instead, including a
+ * timeline round trip. Rows already fully visible (e.g. at the top of
+ * the list) are left alone — no scroll jump.
+ *
+ * @param {object|null} row Pressed row element.
+ * @return {boolean} True when the row was already handled (visible or scrolled).
+ */
+export function scrollRowIntoView(row) {
+  if (!row || typeof row.scrollIntoView !== 'function') {
+    return false;
+  }
+  try {
+    const rect =
+      typeof row.getBoundingClientRect === 'function'
+        ? row.getBoundingClientRect()
+        : null;
+    const box = rect ? scrollerBoxOf(row) : null;
+    if (box && rect.top >= box.top && rect.bottom <= box.bottom) {
+      return true;
+    }
+    row.scrollIntoView({ block: 'center' });
+  } catch (error) {}
+
+  return true;
+}
+
+/**
+ * Remembers a timeline row as the return anchor without opening its preview.
+ *
+ * A direct jump (row icon) bypasses `selectPanelRecord`, so the shell would
+ * otherwise anchor on the previously previewed row and the way back would
+ * land in the wrong place. This records the jumped-from key and repaints
+ * the pressed state only — the detail pane stays untouched.
+ *
+ * @param {object|null} row Timeline row element.
+ * @return {boolean} True when a row key was remembered.
+ */
+export function rememberTimelineRow(row) {
+  if (
+    !row ||
+    typeof row.getAttribute !== 'function' ||
+    typeof row.hasAttribute !== 'function' ||
+    !row.hasAttribute('data-dk-timeline-entry')
+  ) {
+    return false;
+  }
+  const key = row.getAttribute('data-dk-timeline-key') ?? '';
+
+  if (key === '') {
+    return false;
+  }
+  lastTimelineRowKey = key;
 
   return true;
 }
@@ -651,6 +1015,13 @@ export function handleWorkspaceBackClick(target) {
       focusDetail.setAttribute('hidden', '');
     }
     restoreFocusScroll(workspace);
+    try {
+      const pressed =
+        typeof workspace.querySelector === 'function'
+          ? workspace.querySelector('[aria-pressed="true"]')
+          : null;
+      scrollRowIntoView(pressed);
+    } catch (error) {}
   }
 
   return true;

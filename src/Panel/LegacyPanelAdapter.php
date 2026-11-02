@@ -157,6 +157,29 @@ final class LegacyPanelAdapter extends DebugPanel
     }
 
     /**
+     * Forwards timeline rows when the wrapped panel owns timestamped data.
+     *
+     * Duck-typed third-party panels appear on the waterfall with no core
+     * changes: when the inner instance exposes `timelineEvents()`, its rows
+     * merge in registry order like any core source. Panels without the
+     * method contribute nothing.
+     *
+     * @param array<string, mixed> $data Collected panel data for one request.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        if (!method_exists($this->inner, 'timelineEvents')) {
+            return [];
+        }
+
+        $events = $this->inner->timelineEvents($data, $requestStart);
+
+        return is_array($events) ? array_values($events) : [];
+    }
+
+    /**
      * Forwards third-party push calls to the wrapped instance.
      *
      * Captures attach panels while their own start event is already

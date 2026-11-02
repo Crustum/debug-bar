@@ -23,6 +23,7 @@
  * @var float $end_ms Request window in milliseconds
  */
 use Crustum\DebugBar\Service\QueryAnalyzer;
+use Crustum\DebugBar\Service\RequestFacts;
 use function Cake\Core\h;
 
 $events = array_values((array)($events ?? []));
@@ -32,17 +33,13 @@ $captured = $retained + $omitted;
 $window = max(0.001, (float)($end_ms ?? 0));
 $ticks = [0, 25, 50, 75, 100];
 
-$inspectorMap = [
-    'timer' => ['key' => 'timer', 'label' => 'Timer'],
-    'sqllog' => ['key' => 'queries', 'label' => 'Queries'],
-    'log' => ['key' => 'log', 'label' => 'Logs'],
-    'cache' => ['key' => 'cache', 'label' => 'Cache'],
-];
+$inspectorMap = (array)($inspectors ?? []);
 $items = [];
 foreach ($events as $index => $event) {
     $event = (array)$event;
     $panelKey = (string)(($event['panel'] ?? '') !== '' ? $event['panel'] : 'timer');
-    $inspector = $inspectorMap[$panelKey] ?? ['key' => $panelKey, 'label' => ucfirst($panelKey)];
+    $inspector = $inspectorMap[$panelKey]
+        ?? ['key' => RequestFacts::inspectorKey($panelKey), 'label' => ucfirst($panelKey)];
     $at = max(0.0, (float)($event['at'] ?? 0));
     $duration = max(0.0, (float)($event['duration_ms'] ?? 0));
     $kind = $duration > 0 ? 'span' : 'event';
@@ -53,6 +50,7 @@ foreach ($events as $index => $event) {
         'id' => 'timeline-' . ($index + 1),
         'inspector' => $inspector['key'],
         'inspector_label' => $inspector['label'],
+        'ref' => isset($event['ref']) && (is_string($event['ref']) || is_int($event['ref'])) ? (string)$event['ref'] : '',
         'kind' => $kind,
         'kind_label' => $kind === 'span' ? 'Duration' : 'Event',
         'label' => (string)($event['label'] ?? ''),
@@ -178,8 +176,9 @@ foreach ($items as $item) {
         <?php foreach ($items as $index => $item) :
             $pressed = $index === 0;
             ?>
-        <button
-            type="button"
+        <div
+            role="button"
+            tabindex="0"
             data-dk-timeline-item="<?= h($item['id']) ?>"
             data-dk-timeline-entry
             data-dk-timeline-key="<?= h($item['id']) ?>"
@@ -196,7 +195,7 @@ foreach ($items as $item) {
             data-dk-search-text="<?= h($item['search']) ?>"
             aria-pressed="<?= $pressed ? 'true' : 'false' ?>"
             aria-controls="debugbar-timeline-detail"
-            class="dk:grid dk:h-auto dk:w-full dk:min-w-0 dk:grid-cols-[minmax(0,1fr)_auto] dk:items-center dk:gap-x-3 dk:px-3 dk:py-2.5 dk:text-left dk:transition-colors dk:focus-visible:relative dk:focus-visible:z-10 dk:focus-visible:outline-2 dk:focus-visible:outline-indigo-500 dk:sm:py-3 dk:lg:grid-cols-[minmax(13rem,0.8fr)_minmax(20rem,2fr)_6rem] dk:lg:px-0 dk:lg:py-0<?= $pressed ? ' dk:bg-indigo-50/65 dk:dark:bg-indigo-950/20' : ' dk:hover:bg-zinc-50/80 dk:dark:hover:bg-zinc-900/60' ?>"
+            class="dk:grid dk:h-auto dk:w-full dk:min-w-0 dk:cursor-pointer dk:grid-cols-[minmax(0,1fr)_auto] dk:items-center dk:gap-x-3 dk:px-3 dk:py-2.5 dk:text-left dk:transition-colors dk:focus-visible:relative dk:focus-visible:z-10 dk:focus-visible:outline-2 dk:focus-visible:outline-indigo-500 dk:sm:py-3 dk:lg:grid-cols-[minmax(13rem,0.8fr)_minmax(20rem,2fr)_6rem] dk:lg:px-0 dk:lg:py-0<?= $pressed ? ' dk:bg-indigo-50/65 dk:dark:bg-indigo-950/20' : ' dk:hover:bg-zinc-50/80 dk:dark:hover:bg-zinc-900/60' ?>"
             style="--dk-timeline-at: <?= h((string)round($item['at_percent'], 2)) ?>%; --dk-timeline-start: <?= h((string)round($item['at_percent'], 2)) ?>%; --dk-timeline-width: <?= h((string)round($item['width_percent'], 2)) ?>%;"
         >
             <span class="dk:min-w-0 dk:lg:px-3 dk:lg:py-2.5">
@@ -227,10 +226,25 @@ foreach ($items as $item) {
                 ></span>
                 <?php endif; ?>
             </span>
-            <span class="dk:text-right dk:text-xs dk:font-semibold dk:tabular-nums dk:text-zinc-600 dk:dark:text-zinc-300 dk:lg:px-3 dk:lg:py-2.5">
+            <span class="dk:flex dk:items-center dk:justify-end dk:gap-1 dk:text-right dk:text-xs dk:font-semibold dk:tabular-nums dk:text-zinc-600 dk:dark:text-zinc-300 dk:lg:px-3 dk:lg:py-2.5">
                 <?= h($item['at_label']) ?>
+                <?php if ($item['ref'] !== '') : ?>
+                <button
+                    type="button"
+                    data-dk-open-inspector="<?= h($item['inspector']) ?>"
+                    data-dk-open-inspector-ref="<?= h($item['ref']) ?>"
+                    data-dk-timeline-jump
+                    title="Open in <?= h($item['inspector_label']) ?> inspector"
+                    aria-label="Open <?= h($item['label']) ?> in <?= h($item['inspector_label']) ?> inspector"
+                    class="dk:inline-flex dk:items-center dk:rounded dk:p-0.5 dk:text-indigo-600 dk:dark:text-indigo-300 dk:hover:bg-indigo-50 dk:dark:hover:bg-indigo-950/40"
+                >
+                    <?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'external-link', 'size' => '3.5']) ?>
+                </button>
+                <?php else : ?>
+                <span class="dk:inline-flex dk:items-center dk:p-0.5" style="visibility:hidden" aria-hidden="true"><?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'external-link', 'size' => '3.5']) ?></span>
+                <?php endif; ?>
             </span>
-        </button>
+        </div>
         <?php endforeach; ?>
     </div>
     <div data-dk-list-empty hidden>
@@ -271,6 +285,7 @@ foreach ($items as $item) {
                         <button
                             type="button"
                             data-dk-open-inspector="<?= h($item['inspector']) ?>"
+                            data-dk-open-inspector-ref="<?= h($item['ref']) ?>"
                             class="dk:inline-flex dk:shrink-0 dk:items-center dk:gap-1.5 dk:text-xs dk:font-semibold dk:text-indigo-600 dk:dark:text-indigo-300"
                         >
                             <?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'external-link', 'size' => '3.5']) ?>

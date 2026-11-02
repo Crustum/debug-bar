@@ -80,7 +80,7 @@
   align-items: center;
   background: #d33c47;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -1833,6 +1833,14 @@
 
 #debugbar[data-dk-theme='dark'] [data-dk-requests-refresh][aria-busy='true'] svg {
   color: #a5b4fc;
+}
+
+/* Request switch busy: the picker closes on click and the panel HTML
+ * for a heavy request lands seconds later. Triggers pulse while the
+ * request JSON is in flight so the shell never looks idle. */
+#debugbar [data-dk-request-trigger][aria-busy='true'] {
+  animation: dk-debug-bar-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  cursor: progress;
 }
 
 #debugbar .dk-empty-state {

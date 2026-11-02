@@ -241,11 +241,22 @@ $firstLabel = $entries[0]['label'] ?? 'Request';
                 class="dk-scrollbar dk-inspector-content"
             >
                 <div data-dk-inspector-heading-block class="dk-inspector-heading-block">
-                    <h2
-                        data-dk-inspector-heading
-                        tabindex="-1"
-                        class="dk-inspector-heading"
-                    ><?= h((string)$firstLabel) ?></h2>
+                    <div class="dk:flex dk:min-w-0 dk:flex-wrap dk:items-center dk:gap-3">
+                        <h2
+                            data-dk-inspector-heading
+                            tabindex="-1"
+                            class="dk-inspector-heading"
+                        ><?= h((string)$firstLabel) ?></h2>
+                        <button
+                            type="button"
+                            data-dk-timeline-back
+                            hidden
+                            class="dk:inline-flex dk:shrink-0 dk:items-center dk:gap-1.5 dk:text-xs dk:font-semibold dk:text-indigo-600 dk:dark:text-indigo-300"
+                        >
+                            <?= $this->element('Crustum/DebugBar.ui/icon', ['name' => 'chevron-down', 'size' => '3.5', 'class' => 'dk:rotate-90']) ?>
+                            Timeline
+                        </button>
+                    </div>
                     <p
                         id="debugbar-inspector-description"
                         data-dk-inspector-description

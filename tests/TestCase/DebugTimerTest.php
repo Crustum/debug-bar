@@ -22,6 +22,7 @@ class DebugTimerTest extends TestCase
     protected function tearDown(): void
     {
         DebugTimer::clear();
+        parent::tearDown();
     }
 
     /**

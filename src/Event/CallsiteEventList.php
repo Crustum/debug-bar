@@ -29,12 +29,20 @@ class CallsiteEventList extends EventList
     protected array $sites = [];
 
     /**
+     * Dispatch times keyed by event object id.
+     *
+     * @var array<int, float>
+     */
+    protected array $times = [];
+
+    /**
      * @inheritDoc
      */
     public function add(EventInterface $event): void
     {
         parent::add($event);
         $this->sites[spl_object_id($event)] = self::dispatchSite();
+        $this->times[spl_object_id($event)] = microtime(true);
     }
 
     /**
@@ -43,6 +51,7 @@ class CallsiteEventList extends EventList
     public function flush(): void
     {
         $this->sites = [];
+        $this->times = [];
         parent::flush();
     }
 
@@ -55,6 +64,17 @@ class CallsiteEventList extends EventList
     public function siteFor(EventInterface $event): ?array
     {
         return $this->sites[spl_object_id($event)] ?? null;
+    }
+
+    /**
+     * Reads the dispatch time of one tracked event.
+     *
+     * @param \Cake\Event\EventInterface<object> $event Tracked event.
+     * @return float|null Microtime of dispatch or null when unknown.
+     */
+    public function timeFor(EventInterface $event): ?float
+    {
+        return $this->times[spl_object_id($event)] ?? null;
     }
 
     /**

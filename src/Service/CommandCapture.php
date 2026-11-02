@@ -7,6 +7,7 @@ use Cake\Event\EventInterface;
 use Cake\Event\EventListenerInterface;
 use Crustum\DebugBar\Command\McpCommand;
 use Crustum\DebugBar\Panel\RequestPanel;
+use Throwable;
 
 /**
  * Captures console command runs as toolbar rows.
@@ -129,6 +130,11 @@ class CommandCapture implements EventListenerInterface
      * The list already shows the `CLI` method, so the URL keeps only
      * the command slug — no path prefix, no binary. A leading `cake`
      * slug (binary name leaking in from custom runners) is stripped.
+     * A `cake unknown` name is the `BaseCommand` default left behind
+     * when the runner never assigned one — nested runs via
+     * `executeCommand()` (OpenCode MCP servers) skip `setName()` — so
+     * it resolves through the static `defaultName()` instead of
+     * storing a useless `unknown` row.
      *
      * @param object $command Command instance.
      * @return string
@@ -136,7 +142,17 @@ class CommandCapture implements EventListenerInterface
     protected static function url(object $command): string
     {
         $name = method_exists($command, 'getName') ? (string)$command->getName() : '';
-        if ($name === '') {
+        if (($name === '' || $name === 'cake unknown') && method_exists($command, 'defaultName')) {
+            try {
+                $fallback = (string)call_user_func([$command, 'defaultName']);
+                if ($fallback !== '' && $fallback !== 'unknown') {
+                    $name = $fallback;
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        if ($name === '' || $name === 'cake unknown') {
             $short = $command::class;
             $position = strrpos(ltrim($short, '\\'), '\\');
             $name = $position === false ? $short : substr($short, $position + 1);

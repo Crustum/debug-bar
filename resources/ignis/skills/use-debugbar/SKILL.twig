@@ -1,0 +1,81 @@
+---
+name: use-debugbar
+description: "Inspect and debug CakePHP apps with crustum/debug-bar through its local MCP server. Use when reading saved toolbar requests, comparing request performance, investigating findings or queries, explaining what happened and what to check next, or asserting query budgets with DebugBarAssertionsTrait. For Speculum-recorded runtime activity use speculum-debugging instead."
+license: MIT
+metadata:
+  author: crustum
+---
+# DebugBar Development
+
+DebugBar stores toolbar rows for CakePHP web requests, CLI commands, and jobs. Agents read the saved rows directly instead of guessing from a rendered page. Do not start another agent process just to call the MCP server. Keep tool responses small, lead with the useful result, and keep the answer short.
+
+## Documentation First
+
+Prefer package `docs/index.md` (Installation, Configuration, MCP, Panels, Testing). There is no Ignis `search-docs` tool.
+
+## Installation
+
+`crustum/debug-bar` is a development-only dependency:
+
+```bash
+composer require --dev crustum/debug-bar
+```
+
+```twig
+{{ assist.cakeCommand('plugin load Crustum/DebugBar') }}
+```
+
+The config file is optional until a value needs to change:
+
+The manifest provider (`src/Manifest/DebugBarManifest.php`) only matters for hosts that use `crustum/plugin-manifest`; there is no required manifest step. The toolbar appears when `debug` is on and the host looks local. Confirm capture with the `X-DEBUGBAR-ID` response header.
+
+Start the local STDIO server (requires the optional `crustum/mcp` dependency; without it the plugin runs normally but exposes no server):
+
+```twig
+{{ assist.cakeCommand('debug-bar mcp') }}
+```
+
+It registers as `Mcp.local['cake-debugbar']` with four read-only tools sharing one envelope (`version: 2`, `status: ok|not_found`, `data`).
+
+## Inspect a request
+
+1. Reproduce the action in the browser when live proof is needed and keep the exact `X-DEBUGBAR-ID`.
+2. Otherwise call `list-requests` and match method, path, status, and time. Do not trust the newest row when background requests may have run. CLI runs appear with `CLI`/`JOB` methods.
+3. Set small limits instead of accepting maximums. Start with 10 request summaries, 10 findings, and 5 items from an inspector or query search. Increase a limit or continue from a cursor only when the answer needs more evidence.
+4. Read `get-findings` first, then open the smallest useful inspector with `get-panel-data` (start at `/panels`, follow returned JSON Pointer paths). Inspect query details only when the request points to a database problem: prefer `inspect-queries` with `slow` or `repeated`, sort by duration, return 5 items.
+5. When a focused response omits needed detail, follow the returned paths with the same request id. A response limit (`mcp.max_items`/`mcp.max_bytes`) is not capture truncation: another page cannot recover values omitted before storage.
+6. Inspect no more than three requests deeply unless a broader review was asked for.
+7. Separate confirmed facts from guesses.
+
+## Compare page performance
+
+1. Use the same browser, account, and session for every page.
+2. Load each page twice and record the exact request id, path, status, and duration. Rank the second load so startup work does not decide the result.
+3. Work in retention-safe batches: rows expire past the storage cap, so save each page's second-load summary and inspect useful rows before continuing.
+4. Compare all saved summaries first. Read findings and small inspectors only for the slowest or most useful second-load rows.
+5. Treat local debug timings as relative evidence. Confirm an important performance claim without the profiler before calling it an application benchmark.
+
+## Interpret the evidence
+
+- Treat a finding as a lead, not a verdict. Repeated chunk or pagination queries can look like an N+1 problem.
+- Read pagination and truncation fields. A collector limit does not mean application data is missing.
+- Compare query time with total request time. If queries are a small share, inspect the timeline, models, events, and views before blaming the database.
+- Check the request outcome before calling a denied permission a failure. A denied check on a successful `200` page may only hide an optional control.
+
+## Explain the result
+
+Answer these questions in order:
+
+1. What happened?
+2. What is wrong?
+3. Why did it happen?
+4. Where should the developer look?
+5. What should they inspect or try next?
+
+Mention the exact request id, path, and status so the developer knows which request the answer describes. The MCP tools only read saved rows and preserve capture-time redaction; do not claim they changed the app.
+
+## Common Pitfalls
+
+- Without `crustum/mcp` installed, `debug-bar mcp` cannot start; install the optional dependency first.
+- Values omitted before storage (collection limits, redaction) are unreachable through MCP; `get-panel-data` only pages retained values.
+- The toolbar stays hidden unless `debug` is on and the host looks local (`DebugBar.safeTld`, `DebugBar.forceEnable`). Storage needs `pdo_sqlite` or a dedicated `debug_bar` datasource; save failures log a warning and never break the response.

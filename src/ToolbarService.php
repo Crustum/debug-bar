@@ -39,49 +39,22 @@ class ToolbarService
     use LocatorAwareTrait;
 
     /**
+     * No implicit defaults.
+     *
+     * The single source of truth is `config/debug_bar.php` loaded into
+     * `Configure::read('DebugBar')`. Callers pass that snapshot to the
+     * constructor.
+     *
+     * @var array
+     */
+    protected array $_defaultConfig = [];
+
+    /**
      * The panel registry.
      *
      * @var \Crustum\DebugBar\Panel\PanelRegistry
      */
     protected PanelRegistry $registry;
-
-    /**
-     * Default configuration.
-     *
-     * @var array
-     */
-    protected array $_defaultConfig = [
-        'panels' => [
-            'Crustum/DebugBar.Cache' => true,
-            'Crustum/DebugBar.Request' => true,
-            'Crustum/DebugBar.SqlLog' => true,
-            'Crustum/DebugBar.Timer' => true,
-            'Crustum/DebugBar.Log' => true,
-            'Crustum/DebugBar.Variables' => true,
-            'Crustum/DebugBar.Environment' => true,
-            'Crustum/DebugBar.Routes' => true,
-            'Crustum/DebugBar.Packages' => true,
-            'Crustum/DebugBar.Mail' => true,
-            'Crustum/DebugBar.Deprecations' => true,
-            'Crustum/DebugBar.Plugins' => true,
-            'Crustum/DebugBar.Validation' => true,
-            'Crustum/DebugBar.Timeline' => true,
-            'Crustum/DebugBar.Findings' => true,
-            'Crustum/DebugBar.HttpClient' => true,
-            'Crustum/DebugBar.Events' => true,
-            'Crustum/DebugBar.Authorization' => true,
-            'Crustum/DebugBar.Models' => true,
-            'Crustum/DebugBar.Exceptions' => true,
-            'Crustum/DebugBar.Views' => true,
-            'Crustum/DebugBar.Attributes' => true,
-        ],
-        'forceEnable' => false,
-        'safeTld' => [],
-        'ignorePathsPattern' => null,
-        'ignored_url_masks' => [],
-        'miniPosition' => 'bottom-right',
-        'miniAction' => 'bar',
-    ];
 
     /**
      * Constructor
@@ -93,6 +66,36 @@ class ToolbarService
     {
         $this->setConfig($config);
         $this->registry = new PanelRegistry($events);
+    }
+
+    /**
+     * Checks whether a panel is enabled.
+     *
+     * Supports both `['Crustum/DebugBar.Timer' => true]` and list-style
+     * `['Crustum/DebugBar.Timer']` entries. Missing or malformed `panels`
+     * config means disabled.
+     *
+     * @param string $panel Panel alias, e.g. `Crustum/DebugBar.Deprecations`.
+     * @return bool True when the panel is explicitly enabled.
+     */
+    public function isPanelEnabled(string $panel): bool
+    {
+        $panels = $this->getConfig('panels', []);
+        if (!is_array($panels)) {
+            return false;
+        }
+
+        foreach ($panels as $name => $enabled) {
+            if (is_numeric($name)) {
+                if ((string)$enabled === $panel) {
+                    return true;
+                }
+            } elseif ($name === $panel) {
+                return (bool)$enabled;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -129,12 +132,12 @@ class ToolbarService
             return true;
         }
 
-        $force = $this->getConfig('forceEnable');
+        $force = $this->getConfig('forceEnable', false);
         if (is_callable($force)) {
-            return $force();
+            return (bool)$force();
         }
 
-        return $force;
+        return (bool)$force;
     }
 
     /**
@@ -173,13 +176,13 @@ class ToolbarService
 
         $tld = end($parts);
         $safeTlds = ['localhost', 'invalid', 'test', 'example', 'local', 'internal'];
-        $safeTlds = array_merge($safeTlds, (array)$this->getConfig('safeTld'));
+        $safeTlds = array_merge($safeTlds, (array)$this->getConfig('safeTld', []));
 
         if (in_array($tld, $safeTlds, true)) {
             return false;
         }
 
-        if (!$this->getConfig('forceEnable')) {
+        if (!$this->getConfig('forceEnable', false)) {
             $safeList = implode(', ', $safeTlds);
             Log::warning(
                 "DebugBar is disabling itself as your host `{$host}` " .
@@ -233,7 +236,12 @@ class ToolbarService
      */
     public function loadPanels(): void
     {
-        foreach ($this->getConfig('panels') as $panel => $enabled) {
+        $panels = $this->getConfig('panels', []);
+        if (!is_array($panels)) {
+            return;
+        }
+
+        foreach ($panels as $panel => $enabled) {
             [$panel, $enabled] = is_numeric($panel) ? [$enabled, true] : [$panel, $enabled];
             if ($enabled && $this->isAvailable((string)$panel)) {
                 $this->registry->load($panel);
@@ -478,13 +486,18 @@ class ToolbarService
         }
 
         $envStart = $request->getEnv('REQUEST_TIME_FLOAT');
-        $requestStart = $envStart !== null ? (float)$envStart : microtime(true);
+        $requestStart = $envStart !== null ? (float)$envStart : DebugTimer::requestStartTime();
+        if ($requestStart <= 0) {
+            $requestStart = microtime(true);
+        }
+
         $redaction = new RedactionService((array)Configure::read('DebugBar'));
         $builder = new TimelineBuilder();
         $timelineData = $builder->build(
             $collected,
             $requestStart,
             microtime(true),
+            $this->registry,
             $redaction->maxItems(),
         );
 
@@ -559,7 +572,7 @@ class ToolbarService
      */
     protected function isIgnoredUrl(string $path): bool
     {
-        $masks = (array)$this->getConfig('ignored_url_masks');
+        $masks = (array)$this->getConfig('ignored_url_masks', []);
         foreach ($masks as $mask) {
             $mask = (string)$mask;
             if ($mask === '') {
@@ -638,7 +651,9 @@ class ToolbarService
         }
 
         $url = Router::url('/', true);
-        $miniPosition = MiniLauncher::sanitizePosition($this->getConfig('miniPosition'));
+        $miniPosition = MiniLauncher::sanitizePosition(
+            $this->getConfig('miniPosition', MiniLauncher::DEFAULT_POSITION),
+        );
         $script = sprintf(
             '<script id="__debug_bar_script" data-id="%s" data-url="%s" data-mini-position="%s" type="module" src="%s"%s></script>',
             $row->id,

@@ -1,4 +1,5 @@
 import { fitPopupInViewport, isEmbeddedFrame, notifyParent } from './core.js';
+import { markSwapRequestBusy, settleSwapRequest } from './bridges.js';
 import { requestStatusTone } from '../requests.js';
 
 function isToolbarScope(scope) {
@@ -300,6 +301,7 @@ export function handlePickerClick(target, ctx) {
   if (target.hasAttribute('data-dk-request-option')) {
     const id = target.getAttribute('data-dk-request-option');
     closeAllPickers(ctx, false);
+    markSwapRequestBusy(ctx, target);
     try {
       ctx.state.swapKeepKey = 'request';
       try {
@@ -317,13 +319,27 @@ export function handlePickerClick(target, ctx) {
         refreshRequestOptions(ctx);
         syncTriggerLabels(ctx);
         if (res && res.same === true) {
+          settleSwapRequest(ctx);
           ctx.openInspector('request');
 
           return;
         }
         if (res && !res.pending && res.id) {
-          ctx.swapRequestPanels(res.id);
+          let swapped = null;
+          try {
+            swapped = ctx.swapRequestPanels(res.id);
+          } catch (error) {
+            swapped = null;
+          }
+          if (swapped && typeof swapped.finally === 'function') {
+            swapped.finally(function () {
+              settleSwapRequest(ctx);
+            });
+
+            return;
+          }
         }
+        settleSwapRequest(ctx);
       };
       if (selected && typeof selected.then === 'function') {
         selected.then(afterSelect);
@@ -600,24 +616,37 @@ export function handleRequestLinkClick(target, ctx) {
   try {
     target.setAttribute('aria-busy', 'true');
   } catch (error) {}
+  markSwapRequestBusy(ctx, null);
 
   const done = function () {
     try {
       target.removeAttribute('aria-busy');
     } catch (error) {}
+    settleSwapRequest(ctx);
   };
   const afterSelect = function (res) {
-    done();
     refreshRequestOptions(ctx);
     syncTriggerLabels(ctx);
     if (res && res.same === true) {
+      done();
       ctx.openInspector('request');
 
       return;
     }
     if (res && !res.pending && res.id) {
-      ctx.swapRequestPanels(res.id);
+      let swapped = null;
+      try {
+        swapped = ctx.swapRequestPanels(res.id);
+      } catch (error) {
+        swapped = null;
+      }
+      if (swapped && typeof swapped.finally === 'function') {
+        swapped.finally(done);
+
+        return;
+      }
     }
+    done();
   };
   fetch(url, { headers: { Accept: 'application/json' } })
     .then(function (response) {

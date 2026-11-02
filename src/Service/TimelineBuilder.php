@@ -3,41 +3,85 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Service;
 
-use Crustum\DebugBar\Cache\Engine\DebugEngine;
+use Cake\Log\Log;
+use Crustum\DebugBar\Panel\PanelRegistry;
+use Crustum\DebugBar\Panel\TimelineSourceInterface;
+use Throwable;
 use function collection;
 
 /**
  * Timeline builder.
  *
- * Merges framework-phase timers, SQL queries, log entries and cache
- * operations onto one time scale at `saveData()` time. Pure: takes already
- * collected sibling panel data plus the request window, returns ordered
- * events with omission counts. Mail has no captured timestamps and stays
- * out until its collector records them.
+ * Merges timestamped sibling panel data onto one time scale at `saveData()`
+ * time. Every loaded panel implementing the event contract appears on the
+ * waterfall in registry order with no configuration; a panel without
+ * timestamps simply stays out by not implementing the contract.
  */
 class TimelineBuilder
 {
     /**
      * Builds the merged event list.
      *
+     * Sources resolve in registry load order. A throwing source is skipped
+     * with a warning: waterfall assembly is toolbar-internal and never
+     * reported as a host-application finding.
+     *
      * @param array<string, mixed> $collected Sibling panel data keyed by registry alias.
      * @param float $requestStart Request start as microtime(true).
      * @param float $requestEnd Request end as microtime(true).
+     * @param \Crustum\DebugBar\Panel\PanelRegistry $registry Loaded panels.
      * @param int $maxItems Retained event cap.
-     * @return array{events: array<int, array<string, mixed>>, retained: int, omitted: int, start_ms: float, end_ms: float}
+     * @return array{events: array<int, array<string, mixed>>, retained: int, omitted: int, start_ms: float, end_ms: float, inspectors: array<string, array{key: string, label: string}>}
      */
-    public function build(array $collected, float $requestStart, float $requestEnd, int $maxItems = 500): array
-    {
-        /** @var \Cake\Collection\CollectionInterface<int, array<string, mixed>> $events */
-        $events = collection($this->timerEvents((array)($collected['Timer'] ?? []), $requestStart))
-            ->append($this->queryEvents((array)($collected['SqlLog'] ?? []), $requestStart))
-            ->append($this->logEvents((array)($collected['Log'] ?? []), $requestStart))
-            ->append($this->cacheEvents((array)($collected['Cache'] ?? []), $requestStart));
+    public function build(
+        array $collected,
+        float $requestStart,
+        float $requestEnd,
+        PanelRegistry $registry,
+        int $maxItems = 500,
+    ): array {
+        /** @var array<int, array<string, mixed>> $chunks */
+        $chunks = [];
+        /** @var array<string, array{key: string, label: string}> $inspectors */
+        $inspectors = [];
+        foreach ($this->providers($registry) as $alias => $provider) {
+            $data = (array)($collected[$alias] ?? []);
+            try {
+                // Duck-typed sources cannot carry the interface (no
+                // dependency on this plugin), so dispatch dynamically.
+                // providers() only admits panels exposing the method.
+                $callable = [$provider, 'timelineEvents'];
+                $events = is_callable($callable)
+                    ? call_user_func($callable, $data, $requestStart)
+                    : [];
+            } catch (Throwable $throwable) {
+                Log::warning(sprintf(
+                    'Timeline source "%s" failed: %s',
+                    $alias,
+                    $throwable->getMessage(),
+                ));
+
+                continue;
+            }
+
+            if (!is_array($events) || $events === []) {
+                continue;
+            }
+
+            $chunks[] = $events;
+            foreach ($events as $row) {
+                $panelKey = $row['panel'] !== '' ? $row['panel'] : strtolower($alias);
+                $inspectors[$panelKey] ??= $this->inspectorInfo($alias, $provider);
+            }
+        }
+
+        /** @var \Cake\Collection\CollectionInterface<int, array<string, mixed>> $sorted */
+        $sorted = collection($chunks)
+            ->unfold(fn(array $rows): array => array_values($rows))
+            ->sortBy(fn(array $event): float => (float)$event['at'], SORT_ASC, SORT_NUMERIC);
 
         /** @var array<int, array<string, mixed>> $ordered */
-        $ordered = $events
-            ->sortBy(fn(array $event): float => (float)$event['at'], SORT_ASC, SORT_NUMERIC)
-            ->toList();
+        $ordered = $sorted->toList();
 
         $retained = count($ordered);
         $omitted = max(0, $retained - max(1, $maxItems));
@@ -48,143 +92,73 @@ class TimelineBuilder
             'omitted' => $omitted,
             'start_ms' => 0.0,
             'end_ms' => max(0.0, ($requestEnd - $requestStart) * 1000),
+            'inspectors' => $inspectors,
         ];
     }
 
     /**
-     * Framework-phase timer events (offsets are already request-relative).
+     * Resolves the inspector link and filter label for one source.
      *
-     * @param array<string, mixed> $timerData Timer panel data.
-     * @param float $requestStart Unused (offsets are relative); kept for symmetry.
-     * @return array<int, array<string, mixed>>
+     * Fully duck-typed on purpose: providers arrive through the
+     * `method_exists($panel, 'timelineEvents')` gate, so legacy adapters
+     * and dependency-free third-party panels reach here without
+     * implementing the interface. Only plain method calls below.
+     *
+     * @param string $alias Registry alias.
+     * @param object $provider Event source.
+     * @return array{key: string, label: string}
      */
-    protected function timerEvents(array $timerData, float $requestStart): array
+    protected function inspectorInfo(string $alias, object $provider): array
     {
-        $events = [];
-        foreach ((array)($timerData['timers'] ?? []) as $name => $timer) {
-            $timer = (array)$timer;
-            $events[] = [
-                'at' => max(0.0, (float)($timer['start'] ?? 0) * 1000),
-                'duration_ms' => max(0.0, (float)($timer['time'] ?? 0) * 1000),
-                'type' => 'timer',
-                'label' => (string)$name,
-                'panel' => 'timer',
-                'source' => null,
-                'ref' => null,
-            ];
+        $title = method_exists($provider, 'title') ? (string)$provider->title() : '';
+        if ($title === '') {
+            $title = ucfirst($alias);
         }
 
-        return $events;
+        $key = method_exists($provider, 'timelineInspectorKey')
+            ? trim((string)$provider->timelineInspectorKey())
+            : '';
+        if ($key === '') {
+            $key = RequestFacts::inspectorKey($title);
+        }
+
+        $label = method_exists($provider, 'timelineLabel')
+            ? trim((string)$provider->timelineLabel())
+            : '';
+
+        return [
+            'key' => $key !== '' ? $key : strtolower($alias),
+            'label' => $label !== '' ? $label : $title,
+        ];
     }
 
     /**
-     * SQL query events from flattened items.
+     * Resolves event providers in registry load order.
      *
-     * @param array<string, mixed> $sqlData SqlLog panel data.
-     * @param float $requestStart Request start as microtime(true).
-     * @return array<int, array<string, mixed>>
-     */
-    protected function queryEvents(array $sqlData, float $requestStart): array
-    {
-        $events = [];
-        foreach (array_values((array)($sqlData['items'] ?? [])) as $index => $item) {
-            $item = (array)$item;
-            $start = (float)($item['start'] ?? 0);
-            $callsite = is_array($item['callsite'] ?? null) ? $item['callsite'] : null;
-            $events[] = [
-                'at' => $start > 0 ? max(0.0, ($start - $requestStart) * 1000) : 0.0,
-                'duration_ms' => max(0.0, (float)($item['took'] ?? 0)),
-                'type' => 'sql',
-                'label' => mb_strimwidth((string)($item['sql'] ?? ''), 0, 120, '…'),
-                'panel' => 'sqllog',
-                'source' => $callsite && ($callsite['file'] ?? null)
-                    ? ['file' => (string)$callsite['file'], 'line' => (int)($callsite['line'] ?? 0)]
-                    : null,
-                'ref' => $index + 1,
-            ];
-        }
-
-        return $events;
-    }
-
-    /**
-     * Log entry events (wall-clock entries, 2- or 3-tuples).
+     * Duck-typed sources count: legacy adapters and third-party panels
+     * exposing `timelineEvents()` join with no core changes and no
+     * interface dependency.
      *
-     * @param array<string, mixed> $logData Log panel data.
-     * @param float $requestStart Request start as microtime(true).
-     * @return array<int, array<string, mixed>>
+     * @param \Crustum\DebugBar\Panel\PanelRegistry $registry Loaded panels.
+     * @return array<string, object>
      */
-    protected function logEvents(array $logData, float $requestStart): array
+    protected function providers(PanelRegistry $registry): array
     {
-        $events = [];
-        $logger = $logData['logger'] ?? null;
-        $levels = [];
-        if (is_object($logger) && method_exists($logger, 'all')) {
-            $levels = (array)$logger->all();
-        } elseif (is_array($logger)) {
-            $levels = $logger;
-        }
+        /** @var array<string, object> $ordered */
+        $ordered = [];
+        foreach ($registry->loaded() as $alias) {
+            $panel = $registry->{$alias} ?? null;
+            if ($panel instanceof TimelineSourceInterface) {
+                $ordered[$alias] = $panel;
 
-        foreach ($levels as $level => $entries) {
-            foreach (array_values((array)$entries) as $entry) {
-                $entry = (array)$entry;
-                $when = (float)($entry[2] ?? 0);
-                if ($when <= 0 && isset($entry[0])) {
-                    $parsed = strtotime((string)$entry[0]);
-                    $when = $parsed === false ? 0.0 : (float)$parsed;
-                }
+                continue;
+            }
 
-                $events[] = [
-                    'at' => $when > 0 ? max(0.0, ($when - $requestStart) * 1000) : 0.0,
-                    'duration_ms' => 0.0,
-                    'type' => 'log',
-                    'label' => mb_strimwidth((string)($entry[1] ?? ''), 0, 120, '…'),
-                    'panel' => 'log',
-                    'source' => null,
-                    'ref' => (string)$level,
-                ];
+            if (is_object($panel) && method_exists($panel, 'timelineEvents')) {
+                $ordered[$alias] = $panel;
             }
         }
 
-        return $events;
-    }
-
-    /**
-     * Cache operation events (no captured timestamps, 1s log resolution).
-     *
-     * @param array<string, mixed> $cacheData Cache panel data.
-     * @param float $requestStart Request start as microtime(true).
-     * @return array<int, array<string, mixed>>
-     */
-    protected function cacheEvents(array $cacheData, float $requestStart): array
-    {
-        $events = [];
-        foreach (array_values((array)($cacheData['logs'] ?? [])) as $line) {
-            $line = (string)$line;
-            $parsed = DebugEngine::parseLine($line);
-            $when = 0.0;
-            if (preg_match('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?( [+-]\d{2}:?\d{2})?/', $line, $matches)) {
-                $parsedTime = strtotime($matches[1] . ($matches[3] ?? ''));
-                if ($parsedTime !== false) {
-                    $fraction = isset($matches[2]) ? (float)('0.' . $matches[2]) : 0.0;
-                    $when = (float)$parsedTime + $fraction;
-                }
-            }
-
-            $label = $parsed['operation'] !== ''
-                ? trim($parsed['operation'] . ($parsed['key'] !== '' ? ' `' . $parsed['key'] . '`' : ''))
-                : mb_strimwidth($line, 0, 120, '…');
-            $events[] = [
-                'at' => $when > 0 ? max(0.0, ($when - $requestStart) * 1000) : 0.0,
-                'duration_ms' => is_numeric($parsed['duration']) ? (float)$parsed['duration'] : 0.0,
-                'type' => 'cache',
-                'label' => mb_strimwidth($label, 0, 120, '…'),
-                'panel' => 'cache',
-                'source' => null,
-                'ref' => null,
-            ];
-        }
-
-        return $events;
+        return $ordered;
     }
 }

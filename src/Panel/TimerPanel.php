@@ -14,7 +14,7 @@ use Crustum\DebugBar\DebugTimer;
  *
  * @ported-from \DebugKit\Panel\TimerPanel
  */
-class TimerPanel extends DebugPanel
+class TimerPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Return an array of events to listen to.
@@ -112,5 +112,35 @@ class TimerPanel extends DebugPanel
         $memory = Number::toReadableSize(DebugMemory::getPeak());
 
         return "$time / $memory";
+    }
+
+    /**
+     * Builds framework-phase timer rows for the waterfall.
+     *
+     * Offsets from `DebugTimer::getAll()` are already relative to the shared
+     * base (`DebugTimer::requestStartTime()`), which the toolbar also passes
+     * as `$requestStart`, so the stamp stays only for signature symmetry.
+     *
+     * @param array<string, mixed> $data Timer panel data.
+     * @param float $requestStart Shared request base (same clock as the offsets).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach ((array)($data['timers'] ?? []) as $name => $timer) {
+            $timer = (array)$timer;
+            $events[] = [
+                'at' => max(0.0, (float)($timer['start'] ?? 0) * 1000),
+                'duration_ms' => max(0.0, (float)($timer['time'] ?? 0) * 1000),
+                'type' => 'timer',
+                'label' => (string)$name,
+                'panel' => 'timer',
+                'source' => null,
+                'ref' => null,
+            ];
+        }
+
+        return $events;
     }
 }

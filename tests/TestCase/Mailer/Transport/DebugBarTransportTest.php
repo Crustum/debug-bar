@@ -20,6 +20,7 @@ class DebugBarTransportTest extends TestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
         $this->log = new ArrayObject();
         $this->wrapped = new class extends AbstractTransport {
             public string $property;

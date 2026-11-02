@@ -154,11 +154,11 @@ class McpDataWalker
         }
 
         if (is_object($value)) {
-            if ($seen->offsetExists($value)) {
+            if ($seen->contains($value)) {
                 return ['__circular' => $value::class];
             }
 
-            $seen->offsetSet($value);
+            $seen->attach($value);
             try {
                 if ($value instanceof DateTimeInterface) {
                     return $value->format(DATE_ATOM);

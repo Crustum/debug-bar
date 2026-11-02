@@ -32,7 +32,7 @@ use UnitEnum;
  * labels only. Result codes and HTTP statuses do not exist in CakePHP
  * checks, so the response section shows the message alone.
  */
-class AuthorizationPanel extends DebugPanel
+class AuthorizationPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Raw captures keyed by insertion order.
@@ -75,6 +75,7 @@ class AuthorizationPanel extends DebugPanel
             'policy_source' => $event->getData('policy_source'),
             'callsite' => $event->getData('callsite'),
             'stack' => $event->getData('stack'),
+            'at' => microtime(true),
         ];
     }
 
@@ -97,6 +98,7 @@ class AuthorizationPanel extends DebugPanel
             'policy' => null,
             'callsite' => null,
             'stack' => [],
+            'at' => microtime(true),
         ];
     }
 
@@ -119,6 +121,7 @@ class AuthorizationPanel extends DebugPanel
             'policy' => $event->getData('policy'),
             'callsite' => null,
             'stack' => [],
+            'at' => microtime(true),
         ];
     }
 
@@ -178,6 +181,38 @@ class AuthorizationPanel extends DebugPanel
     public function summary(): string
     {
         return '';
+    }
+
+    /**
+     * Builds authorization check rows for the waterfall.
+     *
+     * @param array<string, mixed> $data Authorization panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['decisions'] ?? [])) as $decision) {
+            $decision = (array)$decision;
+            $at = (float)($decision['at'] ?? 0);
+            if ($at <= 0) {
+                continue;
+            }
+
+            $label = trim(($decision['ability'] ?? '') . ' (' . ($decision['result'] ?? '') . ')');
+            $events[] = [
+                'at' => max(0.0, ($at - $requestStart) * 1000),
+                'duration_ms' => 0.0,
+                'type' => 'authorization',
+                'label' => mb_strimwidth($label, 0, 120, '…'),
+                'panel' => 'authorization',
+                'source' => null,
+                'ref' => $decision['key'] ?? null,
+            ];
+        }
+
+        return $events;
     }
 
     /**
@@ -312,6 +347,7 @@ class AuthorizationPanel extends DebugPanel
             'result_message' => $reason,
             'result_code' => null,
             'result_status' => null,
+            'at' => isset($raw['at']) ? (float)$raw['at'] : null,
             'user_label' => $user['label'],
             'user_type' => $user['type'],
             'user_identifier_name' => $user['identifier_name'],

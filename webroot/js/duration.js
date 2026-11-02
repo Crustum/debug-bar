@@ -6,19 +6,37 @@ export function formatDuration(value) {
   if (!Number.isFinite(milliseconds)) return '—';
 
   if (milliseconds >= 3600000) {
-    const hours = Math.floor(milliseconds / 3600000);
-    const minutes = Math.floor((milliseconds - hours * 3600000) / 60000);
-    if (minutes > 0) return `${hours} h ${minutes} min`;
+    let hours = Math.floor(milliseconds / 3600000);
+    let minutes = Math.floor((milliseconds - hours * 3600000) / 60000);
+    let seconds = Math.round(
+      (milliseconds - hours * 3600000 - minutes * 60000) / 1000,
+    );
+    if (seconds >= 60) {
+      seconds -= 60;
+      minutes++;
+    }
+    if (minutes >= 60) {
+      minutes -= 60;
+      hours++;
+    }
+    const parts = [`${hours} h`];
+    if (minutes > 0) parts.push(`${minutes} min`);
+    if (seconds > 0) parts.push(`${seconds} s`);
 
-    return `${hours} h`;
+    return parts.join(' ');
   }
   if (milliseconds >= 60000) {
-    const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.round((milliseconds - minutes * 60000) / 1000);
+    let minutes = Math.floor(milliseconds / 60000);
+    let seconds = Math.round((milliseconds - minutes * 60000) / 1000);
+    if (seconds >= 60) {
+      seconds -= 60;
+      minutes++;
+    }
     if (seconds > 0) return `${minutes} min ${seconds} s`;
 
     return `${minutes} min`;
   }
+  if (milliseconds >= 10000) return `${Math.round(milliseconds / 1000)} s`;
   if (milliseconds >= 1000) return `${decimal(milliseconds / 1000)} s`;
   if (milliseconds >= 1) return `${decimal(milliseconds)} ms`;
   if (milliseconds === 0) return '0 µs';

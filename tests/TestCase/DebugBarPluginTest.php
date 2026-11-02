@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Test\TestCase;
 
+use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Error\PhpError;
 use Cake\Event\Event;
@@ -27,7 +28,7 @@ class DebugBarPluginTest extends TestCase
     public function testSetDeprecationHandler(): void
     {
         DeprecationsPanel::clearDeprecatedErrors();
-        $service = new ToolbarService(new EventManager(), []);
+        $service = new ToolbarService(new EventManager(), (array)Configure::read('DebugBar'));
         $plugin = new DebugBarPlugin();
         $plugin->setDeprecationHandler($service);
 

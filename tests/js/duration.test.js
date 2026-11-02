@@ -12,12 +12,14 @@ describe('formatDuration', () => {
     assert.equal(formatDuration(Number.POSITIVE_INFINITY), '—');
   });
 
-  it('renders seconds with up to two decimals', () => {
+  it('renders seconds with millisecond precision below ten seconds', () => {
     assert.equal(formatDuration(1000), '1 s');
     assert.equal(formatDuration(1500), '1.5 s');
     assert.equal(formatDuration(2000), '2 s');
     assert.equal(formatDuration(1234), '1.23 s');
     assert.equal(formatDuration('1500'), '1.5 s');
+    assert.equal(formatDuration(9120), '9.12 s');
+    assert.equal(formatDuration(45000), '45 s');
   });
 
   it('renders milliseconds below one second', () => {
@@ -43,11 +45,15 @@ describe('formatDuration', () => {
     assert.equal(formatDuration(3600000), '1 h');
     assert.equal(formatDuration(5400000), '1 h 30 min');
     assert.equal(formatDuration(7200000), '2 h');
+    assert.equal(formatDuration(3674615.2), '1 h 1 min 15 s');
+    assert.equal(formatDuration(3661000), '1 h 1 min 1 s');
+    assert.equal(formatDuration(3599999), '60 min');
   });
 
   it('renders minutes above one minute', () => {
     assert.equal(formatDuration(60000), '1 min');
     assert.equal(formatDuration(90000), '1 min 30 s');
     assert.equal(formatDuration(120000), '2 min');
+    assert.equal(formatDuration(119700), '2 min');
   });
 });

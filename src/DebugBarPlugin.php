@@ -201,7 +201,7 @@ class DebugBarPlugin extends BasePlugin
      */
     public function setExceptionListener(ToolbarService $service): void
     {
-        if (empty($service->getConfig('panels')['Crustum/DebugBar.Exceptions'])) {
+        if (!$service->isPanelEnabled('Crustum/DebugBar.Exceptions')) {
             return;
         }
 
@@ -240,7 +240,7 @@ class DebugBarPlugin extends BasePlugin
      */
     public function setDeprecationHandler(ToolbarService $service): void
     {
-        if (!empty($service->getConfig('panels')['Crustum/DebugBar.Deprecations'])) {
+        if ($service->isPanelEnabled('Crustum/DebugBar.Deprecations')) {
             EventManager::instance()->on('Error.beforeRender', function (EventInterface $event, PhpError $error): void {
                 $code = $error->getCode();
                 if ($code !== E_USER_DEPRECATED && $code !== E_DEPRECATED) {

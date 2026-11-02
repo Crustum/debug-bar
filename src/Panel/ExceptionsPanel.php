@@ -17,7 +17,7 @@ use Throwable;
  * messages truncate, file excerpts cap at the configured context lines.
  * The inbox drains on `data()` for workers.
  */
-class ExceptionsPanel extends DebugPanel
+class ExceptionsPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Captured throwables for the current request.
@@ -25,6 +25,16 @@ class ExceptionsPanel extends DebugPanel
      * @var array<int, \Throwable>
      */
     protected static array $inbox = [];
+
+    /**
+     * Capture times keyed by throwable object id.
+     *
+     * The inbox keeps plain throwables so `recorded()` stays untouched;
+     * times ride alongside for the waterfall.
+     *
+     * @var array<int, float>
+     */
+    protected static array $times = [];
 
     /**
      * Records one throwable.
@@ -35,6 +45,7 @@ class ExceptionsPanel extends DebugPanel
     public static function record(Throwable $error): void
     {
         static::$inbox[] = $error;
+        static::$times[spl_object_id($error)] = microtime(true);
     }
 
     /**
@@ -45,6 +56,7 @@ class ExceptionsPanel extends DebugPanel
     public static function clear(): void
     {
         static::$inbox = [];
+        static::$times = [];
     }
 
     /**
@@ -140,10 +152,13 @@ class ExceptionsPanel extends DebugPanel
         $framesConfig = (array)Configure::read('DebugBar.exception_frames', []);
         $exceptions = [];
         foreach (static::$inbox as $error) {
-            $exceptions[] = static::normalize($error, $framesConfig);
+            $row = static::normalize($error, $framesConfig);
+            $row['at'] = static::$times[spl_object_id($error)] ?? null;
+            $exceptions[] = $row;
         }
 
         static::$inbox = [];
+        static::$times = [];
 
         return [
             'exceptions' => $exceptions,
@@ -161,6 +176,39 @@ class ExceptionsPanel extends DebugPanel
         $count = count(static::$inbox);
 
         return $count === 0 ? '' : "{$count} exceptions";
+    }
+
+    /**
+     * Builds throwable rows for the waterfall.
+     *
+     * @param array<string, mixed> $data Exceptions panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['exceptions'] ?? [])) as $index => $error) {
+            $error = (array)$error;
+            $at = (float)($error['at'] ?? 0);
+            if ($at <= 0) {
+                continue;
+            }
+
+            $label = trim(($error['class'] ?? 'Exception') . ': ' . ($error['message'] ?? ''));
+            $file = (string)($error['file'] ?? '');
+            $events[] = [
+                'at' => max(0.0, ($at - $requestStart) * 1000),
+                'duration_ms' => 0.0,
+                'type' => 'exception',
+                'label' => mb_strimwidth($label, 0, 120, '…'),
+                'panel' => 'exceptions',
+                'source' => $file !== '' ? ['file' => $file, 'line' => (int)($error['line'] ?? 0)] : null,
+                'ref' => 'exception-' . ($index + 1),
+            ];
+        }
+
+        return $events;
     }
 
     /**

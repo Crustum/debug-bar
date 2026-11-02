@@ -215,6 +215,14 @@ class QueryAnalyzerTest extends TestCase
         $this->assertSame('—', QueryAnalyzer::formatDuration(0));
         $this->assertSame('1.0 ms', QueryAnalyzer::formatDuration(1.0));
         $this->assertSame('1.50 s', QueryAnalyzer::formatDuration(1500.0));
+        $this->assertSame('9.12 s', QueryAnalyzer::formatDuration(9120.0));
+        $this->assertSame('45 s', QueryAnalyzer::formatDuration(45000.0));
+        $this->assertSame('1 min 30 s', QueryAnalyzer::formatDuration(90000.0));
+        $this->assertSame('2 min', QueryAnalyzer::formatDuration(119700.0));
+        $this->assertSame('1 h', QueryAnalyzer::formatDuration(3600000.0));
+        $this->assertSame('1 h 30 min', QueryAnalyzer::formatDuration(5400000.0));
+        $this->assertSame('1 h 1 min 15 s', QueryAnalyzer::formatDuration(3674615.2));
+        $this->assertSame('60 min', QueryAnalyzer::formatDuration(3599999.0));
         $this->assertSame('500 µs', QueryAnalyzer::formatDuration(0.5));
         $this->assertSame('0.9 µs', QueryAnalyzer::formatDuration(0.0009));
         $this->assertSame('0.2 µs', QueryAnalyzer::formatDuration(0.00021));
