@@ -7,6 +7,7 @@ use Cake\Event\EventList;
 use Cake\Event\EventManager;
 use Closure;
 use Crustum\DebugBar\DebugPanel;
+use Crustum\DebugBar\DebugTimer;
 use Crustum\DebugBar\Event\CallsiteEventList;
 use Crustum\DebugBar\Service\AppPath;
 use Crustum\DebugBar\Service\CallsiteCapture;
@@ -30,7 +31,7 @@ use Throwable;
  * they count as completed; stopped propagation marks the group partial
  * instead of guessing which listener ran.
  */
-class EventsPanel extends DebugPanel
+class EventsPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Owner of global event recording when a third-party manager replaces
@@ -93,10 +94,13 @@ class EventsPanel extends DebugPanel
             $list->flush();
         }
 
+        $requestStart = DebugTimer::requestStartTime() > 0 ? DebugTimer::requestStartTime() : null;
         /** @var array<string, array<string, mixed>> $groups */
         $groups = [];
         foreach ($tracked as $index => $event) {
             $name = (string)$event['name'];
+            $at = isset($event['at']) ? (float)$event['at'] : 0.0;
+            $atMs = $at > 0 && $requestStart !== null ? max(0.0, ($at - $requestStart) * 1000) : null;
             $groups[$name] ??= $event + [
                 'occurrence_count' => 0,
                 'dispatches' => 0,
@@ -105,13 +109,20 @@ class EventsPanel extends DebugPanel
                 'stopped' => false,
                 'occurrences' => [],
                 'site_labels' => [],
+                'first_at' => null,
+                'first_at_ms' => null,
             ];
 
             $groups[$name]['occurrence_count']++;
             $groups[$name]['dispatches']++;
             $groups[$name]['last_sequence'] = $index + 1;
             $groups[$name]['stopped'] = (bool)$groups[$name]['stopped'] || (bool)$event['stopped'];
-            $groups[$name]['occurrences'][] = ['sequence' => $index + 1, 'at_ms' => null];
+            $groups[$name]['occurrences'][] = ['sequence' => $index + 1, 'at' => $at > 0 ? $at : null, 'at_ms' => $atMs];
+            if ($at > 0 && ($groups[$name]['first_at'] === null || $at < (float)$groups[$name]['first_at'])) {
+                $groups[$name]['first_at'] = $at;
+                $groups[$name]['first_at_ms'] = $atMs;
+            }
+
             $site = $event['dispatch_site'] ?? null;
             if (is_array($site)) {
                 $label = CallsiteCapture::label([
@@ -231,6 +242,43 @@ class EventsPanel extends DebugPanel
     }
 
     /**
+     * Builds event dispatch rows for the waterfall.
+     *
+     * One row per event group at its first dispatch; groups without a
+     * captured dispatch time stay out.
+     *
+     * @param array<string, mixed> $data Events panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['events'] ?? [])) as $group) {
+            $group = (array)$group;
+            $firstAt = (float)($group['first_at'] ?? 0);
+            if ($firstAt <= 0) {
+                continue;
+            }
+
+            $display = (string)($group['display_name'] ?? $group['name'] ?? 'event');
+            $full = (string)($group['name'] ?? '');
+            $name = $full !== '' ? $full : $display;
+            $events[] = [
+                'at' => max(0.0, ($firstAt - $requestStart) * 1000),
+                'duration_ms' => 0.0,
+                'type' => 'event',
+                'label' => mb_strimwidth($name, 0, 120, '…'),
+                'panel' => 'events',
+                'source' => null,
+                'ref' => $group['key'] ?? null,
+            ];
+        }
+
+        return $events;
+    }
+
+    /**
      * Reads tracked events off the list.
      *
      * Payload shapes keep argument positions, types and public field
@@ -254,6 +302,7 @@ class EventsPanel extends DebugPanel
                 'name' => $event->getName(),
                 'subject' => $subject === null ? null : $subject::class,
                 'stopped' => $event->isStopped(),
+                'at' => $list instanceof CallsiteEventList ? $list->timeFor($event) : null,
                 'data_keys' => array_keys($data),
                 'data_shapes' => $this->payloadShape($data),
                 'payload_shape' => $this->payloadShape($data),

@@ -10,7 +10,10 @@ import {
   handleWorkspaceBackClick,
   registerPanelScripts,
   registerSelectionConfigs,
+  rememberTimelineRow,
   resetFocusWorkspaces,
+  restoreTimelineSelection,
+  revealInspectorRecord,
   selectPanelRecord,
 } from './panels.js';
 import {
@@ -126,6 +129,28 @@ if (root) {
   const dialog = root.querySelector('#debugbar-inspector');
   const mini = root.querySelector('[data-dk-mini-toggle]');
 
+  /**
+   * Whether the current inspector was opened from the timeline.
+   *
+   * The heading "Timeline" back button shows only in this case: a direct
+   * tab click means the user navigated here on their own, not from a
+   * waterfall row, so there is nothing to go back to.
+   *
+   * @type {boolean}
+   */
+  let timelineReturn = false;
+
+  /**
+   * Skips the timeline preview re-press on the way back.
+   *
+   * The heading "Timeline" button returns to the list only: the row stays
+   * highlighted and centered, but its detail preview must not reopen.
+   * Set by the back-button branch, consumed once by `syncPanels`.
+   *
+   * @type {boolean}
+   */
+  let skipTimelineRestore = false;
+
   function setFrame(mode) {
     root.setAttribute('data-dk-frame', mode);
   }
@@ -141,6 +166,16 @@ if (root) {
       shell.syncInspectorPanels(inspectorPanels());
     } catch (error) {}
     resetFocusWorkspaces(root);
+    if (skipTimelineRestore === true) {
+      skipTimelineRestore = false;
+    } else {
+      try {
+        restoreTimelineSelection(root, {
+          setRowPressed,
+          paintCodeBlocks: (scope) => paintCodeBlocks(scope, root),
+        });
+      } catch (error) {}
+    }
   }
 
   function syncNavDom(key) {
@@ -189,6 +224,14 @@ if (root) {
     if (loadingLabel) {
       loadingLabel.textContent = String(label).toLowerCase();
     }
+    const timelineBack = root.querySelector('[data-dk-timeline-back]');
+    if (timelineBack) {
+      if (timelineReturn === true && key !== 'timeline') {
+        timelineBack.removeAttribute('hidden');
+      } else {
+        timelineBack.setAttribute('hidden', '');
+      }
+    }
     const content = root.querySelector('[data-dk-inspector-content]');
     if (content) {
       content.scrollTop = 0;
@@ -225,11 +268,76 @@ if (root) {
     setFrame('bar');
   }
 
-  function openInspector(key) {
-    const target = typeof key === 'string' && key !== '' ? key : 'request';
+  /**
+   * Anchors the jumped-from timeline row without opening its preview.
+   *
+   * Paints the pressed state on the row the jump started from (icon or
+   * row click) and remembers its key, so the way back lands on this row
+   * instead of the previously previewed one. The detail pane is left
+   * untouched — jumps from an open preview already recorded their key
+   * via selection.
+   *
+   * @param {object} target Clicked element inside the timeline panel.
+   * @param {object} root Shell root to search.
+   * @return {void}
+   */
+  function rememberTimelineJump(target, root) {
     try {
-      shell.openInspector(target, null, dialog);
+      const row =
+        target && typeof target.hasAttribute === 'function' && target.hasAttribute('data-dk-timeline-entry')
+          ? target
+          : target && typeof target.closest === 'function'
+            ? target.closest('[data-dk-timeline-entry]')
+            : null;
+      if (!row || rememberTimelineRow(row) !== true) {
+        return;
+      }
+      const scope =
+        typeof row.closest === 'function'
+          ? row.closest('[data-dk-timeline-panel]') || root
+          : root;
+      const key = row.getAttribute('data-dk-timeline-key') ?? '';
+      scope
+        .querySelectorAll('[data-dk-timeline-entry]')
+        .forEach(function (entry) {
+          setRowPressed(entry, entry.getAttribute('data-dk-timeline-key') === key);
+        });
     } catch (error) {}
+  }
+
+  function scheduleRevealRetry(root, key, ref) {
+    try {
+      const schedule =
+        typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame
+          : null;
+      if (!schedule) {
+        return;
+      }
+      schedule(function () {
+        try {
+          revealInspectorRecord(root, key, ref);
+        } catch (error) {}
+      });
+    } catch (error) {}
+  }
+
+  function openInspector(key, options = null) {
+    const target = typeof key === 'string' && key !== '' ? key : 'request';
+    const ref =
+      options && typeof options.ref !== 'undefined' && options.ref !== null
+        ? String(options.ref)
+        : '';
+    try {
+      shell.openInspector(target, null, dialog, options);
+    } catch (error) {}
+    if (ref !== '') {
+      try {
+        if (!revealInspectorRecord(root, target, ref)) {
+          scheduleRevealRetry(root, target, ref);
+        }
+      } catch (error) {}
+    }
     setHidden(mini, true);
     setHidden(inspector, false);
     if (toolbar) {
@@ -344,8 +452,23 @@ if (root) {
 
       return;
     }
+    if (target.hasAttribute('data-dk-timeline-back')) {
+      timelineReturn = false;
+      skipTimelineRestore = true;
+      openInspector('timeline');
+
+      return;
+    }
     if (target.hasAttribute('data-dk-open-inspector')) {
-      openInspector(target.getAttribute('data-dk-open-inspector'));
+      timelineReturn =
+        typeof target.closest === 'function' &&
+        target.closest('[data-dk-timeline-panel]') !== null;
+      if (timelineReturn === true) {
+        rememberTimelineJump(target, root);
+      }
+      openInspector(target.getAttribute('data-dk-open-inspector'), {
+        ref: target.getAttribute('data-dk-open-inspector-ref') ?? null,
+      });
 
       return;
     }
@@ -428,6 +551,7 @@ if (root) {
     }
     if (target.hasAttribute('data-dk-inspector-nav-item')) {
       const navKey = target.getAttribute('data-dk-inspector-nav-item');
+      timelineReturn = false;
       try {
         shell.selectInspector(navKey);
       } catch (error) {}
@@ -474,6 +598,13 @@ if (root) {
 
   document.addEventListener('keydown', function (event) {
     if (event.key === 'Enter' || event.key === ' ') {
+      const jump =
+        event.target instanceof Element
+          ? event.target.closest('[data-dk-open-inspector]')
+          : null;
+      if (jump && root.contains(jump)) {
+        return;
+      }
       const row =
         event.target instanceof Element
           ? event.target.closest(
@@ -582,7 +713,13 @@ if (root) {
                       : '[data-dk-inspector-nav-item]',
                   )
                 : null;
-            if (back && typeof back.focus === 'function') back.focus();
+            if (back && typeof back.focus === 'function') {
+              try {
+                back.focus({ preventScroll: true });
+              } catch (error) {
+                back.focus();
+              }
+            }
           } catch (error) {}
         }
 

@@ -67,6 +67,32 @@ class TimelinePanelTest extends TestCase
     }
 
     /**
+     * Stored inspectors map drives the open-inspector link for new rows.
+     *
+     * @return void
+     */
+    public function testWaterfallUsesStoredInspectorsMap(): void
+    {
+        $this->seedRequest(['Timeline' => [
+            'events' => [
+                ['at' => 5.0, 'duration_ms' => 0.0, 'type' => 'view', 'label' => 'home.php', 'panel' => 'views'],
+            ],
+            'retained' => 1,
+            'omitted' => 0,
+            'end_ms' => 20.0,
+            'inspectors' => ['views' => ['key' => 'views', 'label' => 'Views']],
+        ]]);
+        $panels = $this->fetchTable('Crustum/DebugBar.Panels');
+        $panel = $panels->find()->where(['panel' => 'Timeline'])->firstOrFail();
+
+        $this->get('/debug-bar/panels/view/' . $panel->id);
+        $this->assertResponseOk();
+        $body = (string)$this->response->getBody();
+
+        $this->assertStringContainsString('data-dk-open-inspector="views"', $body);
+    }
+
+    /**
      * The waterfall renders rows with marks, ticks and a detail pane.
      *
      * @return void
@@ -75,8 +101,8 @@ class TimelinePanelTest extends TestCase
     {
         $this->seedRequest(['Timeline' => [
             'events' => [
-                ['at' => 0.0, 'duration_ms' => 12.0, 'type' => 'sql', 'label' => 'SELECT 1', 'panel' => 'sqllog'],
-                ['at' => 5.0, 'duration_ms' => 0.0, 'type' => 'log', 'label' => 'Boom', 'panel' => 'log'],
+                ['at' => 0.0, 'duration_ms' => 12.0, 'type' => 'sql', 'label' => 'SELECT 1', 'panel' => 'sqllog', 'ref' => 1],
+                ['at' => 5.0, 'duration_ms' => 0.0, 'type' => 'log', 'label' => 'Boom', 'panel' => 'log', 'ref' => 'log-0'],
             ],
             'retained' => 2,
             'omitted' => 1,
@@ -96,6 +122,11 @@ class TimelinePanelTest extends TestCase
         $this->assertStringContainsString('data-dk-timeline-detail="timeline-1"', $body);
         $this->assertStringContainsString('Timeline incomplete: 1 omitted.', $body);
         $this->assertStringContainsString('Open inspector', $body);
+        $this->assertStringContainsString('data-dk-open-inspector="queries"', $body);
+        $this->assertStringContainsString('data-dk-open-inspector="log"', $body);
+        $this->assertStringContainsString('data-dk-open-inspector-ref="1"', $body);
+        $this->assertStringContainsString('data-dk-open-inspector-ref="log-0"', $body);
+        $this->assertStringContainsString('data-dk-timeline-jump', $body);
         $this->assertStringContainsString('data-dk-workspace-mode="focus"', $body);
         $this->assertStringContainsString('data-dk-workspace-back', $body);
         $this->assertStringContainsString('data-dk-inspector-focus-detail', $body);

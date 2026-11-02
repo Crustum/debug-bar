@@ -20,7 +20,7 @@ use Crustum\DebugBar\Service\RedactionService;
  *
  * @ported-from \DebugKit\Panel\SqlLogPanel
  */
-class SqlLogPanel extends DebugPanel
+class SqlLogPanel extends DebugPanel implements TimelineSourceInterface
 {
     use LocatorAwareTrait;
 
@@ -235,5 +235,35 @@ class SqlLogPanel extends DebugPanel
         }
 
         return "$count / $time ms";
+    }
+
+    /**
+     * Builds SQL query rows for the waterfall.
+     *
+     * @param array<string, mixed> $data SqlLog panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['items'] ?? [])) as $index => $item) {
+            $item = (array)$item;
+            $start = (float)($item['start'] ?? 0);
+            $callsite = is_array($item['callsite'] ?? null) ? $item['callsite'] : null;
+            $events[] = [
+                'at' => $start > 0 ? max(0.0, ($start - $requestStart) * 1000) : 0.0,
+                'duration_ms' => max(0.0, (float)($item['took'] ?? 0)),
+                'type' => 'sql',
+                'label' => mb_strimwidth((string)($item['sql'] ?? ''), 0, 120, '…'),
+                'panel' => 'sqllog',
+                'source' => $callsite && ($callsite['file'] ?? null)
+                    ? ['file' => (string)$callsite['file'], 'line' => (int)($callsite['line'] ?? 0)]
+                    : null,
+                'ref' => $index + 1,
+            ];
+        }
+
+        return $events;
     }
 }

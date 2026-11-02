@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Test\TestCase\Panel;
 
+use Cake\Core\Configure;
 use Cake\Log\Log;
 use Cake\TestSuite\TestCase;
 use Crustum\DebugBar\Log\Engine\DebugBarLog;
@@ -74,6 +75,38 @@ class LogPanelTest extends TestCase
 
         $this->assertInstanceOf(DebugBarLog::class, $logger);
         $this->assertCount(1, $logger->all()['error']);
+    }
+
+    /**
+     * Query echoes for ignored observer tables stay out of the panel.
+     *
+     * The driver logger mirrors every statement to Cake Log, duplicating
+     * the SQL log row: echoes shaped `connection=...` that reference an
+     * ignored table are dropped, ordinary application logs are kept.
+     *
+     * @return void
+     */
+    public function testDataSkipsIgnoredQueryEchoes(): void
+    {
+        $previous = Configure::read('DebugBar.ignored_query_tables');
+        Configure::write('DebugBar.ignored_query_tables', ['speculum_']);
+
+        try {
+            $this->panel->initialize();
+            Log::write('debug', 'Test');
+            Log::write(
+                'debug',
+                "connection=default role=write duration=0.5 rows=1\nINSERT INTO speculum_entries (uuid) VALUES ('x')",
+            );
+
+            $result = $this->panel->data();
+
+            /** @var \Crustum\DebugBar\Log\Engine\DebugBarLog $logger */
+            $logger = $result['logger'];
+            $this->assertCount(1, $logger->all()['debug']);
+        } finally {
+            Configure::write('DebugBar.ignored_query_tables', $previous);
+        }
     }
 
     /**

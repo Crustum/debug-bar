@@ -208,6 +208,11 @@ class RequestPanel extends DebugPanel
      * Prefers the routed command name (`users add_user`) over the class
      * short name, which is what the operator actually typed. Plain
      * strings pass through (class strings shorten to their base name).
+     * A `cake unknown` name is the `BaseCommand` default left behind
+     * when the runner never assigned one — nested runs via
+     * `executeCommand()` (OpenCode MCP servers, the `debug-bar mcp`
+     * wrapper) skip `setName()` — so it falls back to the static
+     * `defaultName()` with the `cake` root the runner would prepend.
      *
      * @param object|string $command Command instance or class/name string.
      * @return string
@@ -221,8 +226,22 @@ class RequestPanel extends DebugPanel
         if (method_exists($command, 'getName')) {
             try {
                 $name = (string)$command->getName();
-                if ($name !== '') {
+                if ($name !== '' && $name !== 'cake unknown') {
                     return $name;
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        if (method_exists($command, 'defaultName')) {
+            try {
+                $default = (string)call_user_func([$command, 'defaultName']);
+                if ($default !== '' && $default !== 'unknown') {
+                    if (!str_starts_with($default, 'cake ')) {
+                        return 'cake ' . $default;
+                    }
+
+                    return $default;
                 }
             } catch (Throwable) {
             }

@@ -15,7 +15,7 @@ use ReflectionClass;
  *
  * @ported-from \DebugKit\Panel\MailPanel
  */
-class MailPanel extends DebugPanel
+class MailPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * The list of emails produced during the request
@@ -86,5 +86,41 @@ class MailPanel extends DebugPanel
         }
 
         return (string)count($this->emailLog);
+    }
+
+    /**
+     * Builds sent-mail rows for the waterfall.
+     *
+     * @param array<string, mixed> $data Mail panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['emails'] ?? [])) as $index => $email) {
+            $email = (array)$email;
+            $at = (float)($email['at'] ?? 0);
+            if ($at <= 0) {
+                continue;
+            }
+
+            $headers = (array)($email['headers'] ?? []);
+            $subject = (string)($headers['Subject'] ?? '');
+            $label = trim('Mail sent' . ($subject !== '' ? ' ' . $subject : ''));
+            $callsite = (array)($email['callsite'] ?? []);
+            $file = (string)($callsite['file'] ?? '');
+            $events[] = [
+                'at' => max(0.0, ($at - $requestStart) * 1000),
+                'duration_ms' => max(0.0, (float)($email['duration_ms'] ?? 0)),
+                'type' => 'mail',
+                'label' => mb_strimwidth($label, 0, 120, '…'),
+                'panel' => 'mail',
+                'source' => $file !== '' ? ['file' => $file, 'line' => (int)($callsite['line'] ?? 0)] : null,
+                'ref' => 'mail-' . $index,
+            ];
+        }
+
+        return $events;
     }
 }

@@ -127,6 +127,7 @@ class DebugBarTransport extends AbstractTransport
             'transport' => $this->transportLabel(),
             'callsite' => $capture['callsite'],
             'stack' => $capture['stack'],
+            'at' => microtime(true),
         ];
         $this->emailLog[] = $result;
 

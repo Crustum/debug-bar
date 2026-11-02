@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Test\TestCase\Database\Log;
 
+use Cake\Core\Configure;
 use Cake\Database\Log\LoggedQuery;
 use Cake\TestSuite\TestCase;
 use Crustum\DebugBar\Database\Log\DebugLog;
@@ -97,6 +98,41 @@ class DebugLogTest extends TestCase
         ]);
         $this->assertCount(2, $this->logger->queries());
         $this->assertEquals(10, $this->logger->totalTime());
+    }
+
+    /**
+     * Observer tables never reach the SQL log.
+     *
+     * Speculum writes entries and vardumps through `speculum_*` tables
+     * on the same connection: recording them bloats one request by
+     * megabytes of interpolated SQL, so they are skipped at capture
+     * while ordinary statements (including BEGIN/COMMIT) are kept.
+     *
+     * @return void
+     */
+    public function testLogSkipsIgnoredTables(): void
+    {
+        $previous = Configure::read('DebugBar.ignored_query_tables');
+        Configure::write('DebugBar.ignored_query_tables', ['speculum_']);
+
+        $logged = function (string $sql): void {
+            $query = new LoggedQuery();
+            $query->setContext(['query' => $sql, 'took' => 10, 'numRows' => 1]);
+
+            $this->logger->log(LogLevel::DEBUG, (string)$query, ['query' => $query]);
+        };
+
+        try {
+            $logged('INSERT INTO speculum_entries (uuid) VALUES (?)');
+            $logged('SELECT * FROM `speculum_entries_tags` WHERE entry_uuid = ?');
+            $this->assertCount(0, $this->logger->queries());
+
+            $logged('SELECT * FROM posts');
+            $logged('BEGIN');
+            $this->assertCount(2, $this->logger->queries());
+        } finally {
+            Configure::write('DebugBar.ignored_query_tables', $previous);
+        }
     }
 
     /**

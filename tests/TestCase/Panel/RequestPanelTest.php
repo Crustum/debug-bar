@@ -15,6 +15,7 @@ use Cake\TestSuite\TestCase;
 use Crustum\DebugBar\Panel\RequestPanel;
 use Crustum\DebugBar\Service\NodeFlattener;
 use TestApp\Command\RequestProbeCommand;
+use TestApp\Command\UnknownNameCommand;
 
 /**
  * Class RequestPanelTest
@@ -469,5 +470,43 @@ class RequestPanelTest extends TestCase
         $data = $this->panel->data();
         $this->assertSame('ack', $data['result']);
         $this->assertSame(0, $data['exit_code']);
+    }
+
+    /**
+     * Routed names render as-is.
+     *
+     * @return void
+     */
+    public function testStartCommandKeepsRoutedName(): void
+    {
+        $panel = new RequestPanel();
+        $panel->startCommand(new RequestProbeCommand(), []);
+
+        $data = $panel->data();
+
+        $this->assertSame('cli', $data['context']);
+        $this->assertSame('request-probe', $data['name']);
+    }
+
+    /**
+     * Unassigned runner names fall back to the default name.
+     *
+     * Nested runs via `executeCommand()` never receive `setName()`,
+     * so `getName()` keeps the `BaseCommand` default and the panel
+     * resolves the display name through `defaultName()` instead of
+     * rendering `cake unknown`.
+     *
+     * @return void
+     */
+    public function testStartCommandFallsBackToDefaultName(): void
+    {
+        $panel = new RequestPanel();
+        $panel->startCommand(new UnknownNameCommand(), []);
+
+        $data = $panel->data();
+
+        $this->assertSame('cli', $data['context']);
+        $this->assertSame('cake mcp start', $data['name']);
+        $this->assertSame(UnknownNameCommand::class, $data['command']);
     }
 }

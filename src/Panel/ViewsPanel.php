@@ -19,7 +19,7 @@ use Crustum\DebugBar\Service\AppPath;
  * renders light; `GET panels/view-data` serves a single render with the
  * other views stripped. The inbox drains on `data()` for workers.
  */
-class ViewsPanel extends DebugPanel
+class ViewsPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Rendered files in order.
@@ -103,6 +103,7 @@ class ViewsPanel extends DebugPanel
             'origin' => AppPath::origin($filename),
             'plugin' => AppPath::pluginName($filename),
             'order' => count(static::$renders) + 1,
+            'at' => microtime(true),
         ];
     }
 
@@ -133,5 +134,40 @@ class ViewsPanel extends DebugPanel
         $count = count(static::$renders);
 
         return $count === 0 ? '' : "{$count} views";
+    }
+
+    /**
+     * Builds view render rows for the waterfall.
+     *
+     * @param array<string, mixed> $data Views panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        $seen = [];
+        foreach (array_values((array)($data['renders'] ?? [])) as $render) {
+            $render = (array)$render;
+            $at = (float)($render['at'] ?? 0);
+            if ($at <= 0) {
+                continue;
+            }
+
+            $file = (string)($render['file'] ?? '');
+            $seen[$file] ??= count($seen);
+
+            $events[] = [
+                'at' => max(0.0, ($at - $requestStart) * 1000),
+                'duration_ms' => 0.0,
+                'type' => 'view',
+                'label' => mb_strimwidth($file !== '' ? basename($file) : 'View rendered', 0, 120, '…'),
+                'panel' => 'views',
+                'source' => null,
+                'ref' => 'view-' . ($seen[$file] + 1),
+            ];
+        }
+
+        return $events;
     }
 }

@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+
+- Timeline auto-discovery: `TimelineSourceInterface::timelineEvents()`.
+  Every loaded panel implementing it appears on the waterfall in registry
+  order with no configuration. Dependency-free third-party panels join
+  duck-typed through `timelineEvents()` with optional `timelineLabel()` /
+  `timelineInspectorKey()` overrides. Panels without timestamps stay out;
+  unloaded panels never reach the waterfall; a throwing source is skipped
+  with a `Log::warning`.
+- Capture timestamps (`at`) for waterfall rows across Events, Models,
+  Views, Mail, Exceptions, Authorization, Deprecations, HttpClient, Log,
+  Cache, SqlLog and Timer panels.
+- Timeline-to-inspector deep link: a jump icon on each row opens the exact
+  inspector record (`ref`); the heading "Timeline" button returns to the
+  anchored row without reopening the preview; the return scroll centers
+  the row.
+- Request-switch loading state: request triggers pulse while the request
+  panels load.
+- Observer exclusion: `DebugBar.ignored_query_tables` (`speculum_*`) and
+  `DebugBar.ignored_model_namespaces` (`Crustum\Speculum\`) keep sibling
+  monitoring traffic out of the SqlLog, Log and Models panels.
+- Explicit `DebugBar.panels` list in `config/debug_bar.php` with
+  `ToolbarService::isPanelEnabled()`.
+- Agent skill `resources/ignis/skills/use-debugbar/SKILL.twig` for reading
+  saved toolbar rows through the local MCP server.
+
+### Changed
+
+- `TimelineBuilder::build()` takes the panel registry; the waterfall base
+  is one shared clock (`REQUEST_TIME_FLOAT`, then
+  `DebugTimer::requestStartTime()`, per-unit stamp for CLI workers).
+- Duration labels: hours render with minutes and seconds
+  (`1 h 1 min 15 s`); seconds below 10 keep millisecond precision
+  (`9.12 s`); larger units round to whole values (`45 s`).
+- CLI command display falls back to `defaultName()` when the runner never
+  assigned a name (nested `executeCommand()` runs used to show
+  `cake unknown`).
+- Models inspector writes stacked as Operation / Source / Record.
+
+### Fixed
+
+- Mini launcher icon is square again (`border-radius: 0`): the rounded
+  red button left the iframe canvas visible in the corners, and some
+  browsers paint that canvas white despite the transparent document,
+  which showed as white corners on dark host pages.
+
 ## [1.0.1]
 
 Mini launcher control: the 40x40 icon is no longer fixed to the

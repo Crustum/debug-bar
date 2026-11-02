@@ -28,7 +28,7 @@ use Throwable;
  * `RedactionService::maskSensitive`, so stored rows never carry cleartext
  * credentials into the inspector or the safe-cURL copy.
  */
-class HttpClientPanel extends DebugPanel
+class HttpClientPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Pending/completed captures keyed by request object id.
@@ -402,6 +402,57 @@ class HttpClientPanel extends DebugPanel
         }
 
         return implode(' ', $parts);
+    }
+
+    /**
+     * Builds HTTP request rows for the waterfall.
+     *
+     * @param array<string, mixed> $data HttpClient panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['requests'] ?? [])) as $position => $request) {
+            $request = (array)$request;
+            $start = (float)($request['start'] ?? 0);
+            $method = (string)($request['method'] ?? 'GET');
+            $url = (string)($request['url'] ?? '');
+            $label = trim($method . ' ' . $url);
+            $events[] = [
+                'at' => $start > 0 ? max(0.0, ($start - $requestStart) * 1000) : 0.0,
+                'duration_ms' => max(0.0, (float)($request['duration_ms'] ?? 0)),
+                'type' => 'http',
+                'label' => mb_strimwidth($label !== '' ? $label : $method, 0, 120, '…'),
+                'panel' => 'httpclient',
+                'source' => $this->eventSource((array)($request['stack'] ?? [])),
+                'ref' => (string)($request['key'] ?? 'http-' . ($position + 1)),
+            ];
+        }
+
+        return $events;
+    }
+
+    /**
+     * Reads the first file-backed stack frame as the event source.
+     *
+     * @param array<int, mixed> $stack Application stack frames.
+     * @return array{file: string, line: int}|null
+     */
+    protected function eventSource(array $stack): ?array
+    {
+        foreach ($stack as $frame) {
+            $frame = (array)$frame;
+            $file = (string)($frame['file'] ?? '');
+            if ($file === '') {
+                continue;
+            }
+
+            return ['file' => $file, 'line' => (int)($frame['line'] ?? 0)];
+        }
+
+        return null;
     }
 
     /**

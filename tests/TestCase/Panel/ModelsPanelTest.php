@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Crustum\DebugBar\Test\TestCase\Panel;
 
+use Cake\Core\Configure;
 use Cake\Event\EventManager;
 use Cake\TestSuite\TestCase;
 use Crustum\DebugBar\Panel\ModelsPanel;
@@ -127,6 +128,52 @@ class ModelsPanelTest extends TestCase
             $data['groups'][0]['writes_list'][0]['source'],
         );
         $this->assertSame(1, $data['summary']['writes']);
+    }
+
+    /**
+     * Sibling observer models never reach the panel.
+     *
+     * Speculum's bookkeeping tables fire the same model events as host
+     * tables; recording them duplicates the SQL log volume in model
+     * shape, so classes under the ignored namespaces are dropped.
+     *
+     * @return void
+     */
+    public function testRecordSkipsIgnoredNamespaces(): void
+    {
+        $previous = Configure::read('DebugBar.ignored_model_namespaces');
+        Configure::write('DebugBar.ignored_model_namespaces', ['Crustum\\Speculum\\']);
+
+        try {
+            ModelsPanel::record([
+                'op' => 'find',
+                'table' => 'SpeculumEntries',
+                'class' => 'Crustum\\Speculum\\Model\\Table\\SpeculumEntriesTable',
+                'connection' => 'test',
+                'identifier' => 'id:1',
+                'changed' => [],
+                'source' => 'src/Controller/PostsController.php:73',
+                'source_app' => true,
+            ]);
+            ModelsPanel::record([
+                'op' => 'find',
+                'table' => 'Articles',
+                'class' => 'App\\Model\\Table\\ArticlesTable',
+                'connection' => 'test',
+                'identifier' => 'id:3',
+                'changed' => [],
+                'source' => 'src/Controller/ArticlesController.php:10',
+                'source_app' => true,
+            ]);
+
+            $panel = new ModelsPanel();
+            $data = $panel->data();
+
+            $this->assertCount(1, $data['groups']);
+            $this->assertSame('App\\Model\\Table\\ArticlesTable', $data['groups'][0]['class']);
+        } finally {
+            Configure::write('DebugBar.ignored_model_namespaces', $previous);
+        }
     }
 
     /**

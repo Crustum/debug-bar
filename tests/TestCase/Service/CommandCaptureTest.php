@@ -14,8 +14,10 @@ use Crustum\DebugBar\Panel\RequestPanel;
 use Crustum\DebugBar\Service\CliRecorder;
 use Crustum\DebugBar\Service\CommandCapture;
 use Monitor\Command\SnapshotCommand;
+use ReflectionMethod;
 use ReflectionProperty;
 use TestApp\Command\RequestProbeCommand;
+use TestApp\Command\UnknownNameCommand;
 
 /**
  * Covers console capture guards and ordering.
@@ -86,6 +88,23 @@ class CommandCaptureTest extends TestCase
     {
         CliRecorder::reset();
         parent::tearDown();
+    }
+
+    /**
+     * Unassigned runner names resolve through the default name.
+     *
+     * Nested runs via `executeCommand()` never receive `setName()`,
+     * so the row URL uses the `defaultName()` slug instead of
+     * a useless `unknown` row.
+     *
+     * @return void
+     */
+    public function testUrlFallsBackToDefaultName(): void
+    {
+        $method = new ReflectionMethod(CommandCapture::class, 'url');
+
+        $this->assertSame('mcp-start', $method->invoke(null, new UnknownNameCommand()));
+        $this->assertSame('request-probe', $method->invoke(null, new RequestProbeCommand()));
     }
 
     /**

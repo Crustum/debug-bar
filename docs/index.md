@@ -79,7 +79,7 @@ comparing the query count on the next request.
 
 > **Warning:** DebugBar is only intended for single-user local development
 > environments. It captures configuration data, environment variables, and
-> SQL bindings into the SQLite store — avoid shared development
+> SQL bindings into the SQLite store. Avoid shared development
 > environments, staging, or anything where that data must stay hidden.
 
 <a name="installation"></a>
@@ -166,12 +166,12 @@ browser. This tells you where the toolbar stopped appearing.
    the toolbar never ran for it: recheck `debug`, host safety (`safeTld`
    / `forceEnable`), and whether the URL matches `ignored_url_masks` or
    `ignorePathsPattern`. The header and successful storage are separate
-   checks — a present header with no readable row points at SQLite
+   checks. A present header with no readable row points at SQLite
    (`pdo_sqlite` missing or no `debug_bar` datasource) or at garbage
    collection already pruning the request window
    (`DebugBar.storage.max_requests`, 20 by default). If the app uses the
-   Authorization plugin, its policy may deny the toolbar's own requests —
-   set `DebugBar.ignoreAuthorization` to `true` in that case.
+   Authorization plugin, its policy may deny the toolbar's own requests.
+   Set `DebugBar.ignoreAuthorization` to `true` in that case.
 2. **Should this response contain a toolbar?** Injection needs an HTML
    response with a closing `</body>` tag:
 
@@ -247,6 +247,14 @@ omitted before storage.
 glob masks against the request path (a trailing `/*` also covers the bare
 prefix) and applies to every status, so noise URLs never reach the store
 or the request switcher.
+
+Monitoring tools must not record each other. `DebugBar.ignored_query_tables`
+lists table name prefixes (case-insensitive) never captured by the SQL log,
+`speculum_*` by default, so Speculum's entries and vardumps never bloat a
+request by megabytes of interpolated SQL. Queries without a recognizable
+table (`BEGIN`/`COMMIT`) are always kept, and the host's own query logs are
+untouched: only DebugBar's capture skips. `DebugBar.ignored_model_namespaces`
+does the same for the Models panel (`Crustum\\Speculum\\` by default).
 
 <a name="thresholds-and-findings"></a>
 ### Thresholds and Findings
@@ -349,9 +357,9 @@ Selecting another row swaps every panel in place through
 `GET /debug-bar/requests/panels` while keeping the open inspector, with
 an automatic fallback to a fresh toolbar page. The current request is
 prepended when it is not in the recent list yet. There is no separate
-History tab: switching replaced it, served by the same recent-request
-data. Noise URLs never reach the switcher — see URL filtering under
-[Storage](#storage).
+History tab like in DebugKit: switching replaced it, served by the same
+recent-request data. Noise URLs never reach the switcher, see URL filtering
+under [Storage](#storage).
 
 <a name="inspector"></a>
 ### Inspector
@@ -359,14 +367,12 @@ data. Noise URLs never reach the switcher — see URL filtering under
 The inspector is a dialog sheet: header (switcher, facts, actions), a
 navigation with one entry per panel, and the content stage.
 Navigation is favorites-first with per-panel counts and attention dots;
-stars persist, `Shift`+arrow keys reorder rows in place — the focused row
-stays focused, so repeated presses keep moving it without re-clicking.
-Panel bodies render server-side — third-party elements work untouched —
-and open with a skeleton, an error card with Retry/Reload when a
-fragment fails, and a background-activity banner with Retry now while
-async work lands. Focus is trapped inside while open and restored on
-close. Mobile layouts collapse the header and navigation into popover
-menus.
+stars persist, `Shift`+arrow keys reorder rows in place.
+Panel bodies render server-side and open with a skeleton, an error card with
+Retry/Reload when a fragment fails, and a background-activity banner
+with Retry now while async work lands. Focus is trapped inside while open
+and restored on close. Mobile layouts collapse the header and navigation
+into popover menus.
 
 <a name="command-palette"></a>
 ### Command Palette
@@ -381,7 +387,7 @@ word-AND, `↑↓↵` move and confirm, backdrop click cancels.
 
 `Ctrl`/`Cmd`+`Alt`+`P` toggles the palette (matched by key code, so it
 works on any layout), including from the host page while only the mini
-icon is visible — the host forwards the chord into the shell frame.
+icon is visible, and the host forwards the chord into the shell frame.
 `Esc` walks down the stack: palette, theme menu,
 request picker, inspector, then bar back to the mini icon (on a full
 toolbar page the bar stays put). Arrow keys move inside pickers and the
@@ -424,7 +430,7 @@ symptom:
 | How do I lock query budgets in tests? | [Testing](#testing) |
 
 An empty panel can be correct: a request that sent no mail has no mail
-records. That is different from a bounded panel — when collection limits
+records. That is different from a bounded panel. When collection limits
 drop records, the panel reports retained and omitted counts so the sample
 is never mistaken for a complete one.
 
@@ -434,7 +440,7 @@ is never mistaken for a complete one.
 Every page load, redirect, `fetch`, and CLI run stores its own request.
 Select the request you meant to inspect before judging its data: the
 request switcher lists recent requests with method, path, status, and
-recorded time. The newest row is not always the one you care about — a
+recorded time. The newest row is not always the one you care about: a
 `fetch` call, polling request, or later command may be newer than the page
 that triggered it. `fetch`/XHR responses are discovered automatically via
 the `X-DEBUGBAR-ID` header; when several rows look similar, copy the exact
@@ -453,14 +459,14 @@ A request can be captured without toolbar HTML. JSON, redirects, and error
 responses keep their format; the `X-DEBUGBAR-ID` header still identifies
 the stored row, which agents read through MCP without a browser page.
 
-The panel walks the request in three steps — Received, Matched,
-Responded — with detail tabs for headers, input, query, and session, plus
+The panel walks the request in three steps `Received`, `Matched`,
+`Responded` with detail tabs for headers, input, query, and session, plus
 the matched route, middleware, call trace, and identity with its auth
 result. Copy the URL or the whole payload as JSON for an agent; the size
 shown is the final body, patched at save time because the panel itself
 only sees the pre-render response. CLI and `JOB` runs show a command
 card instead: name, arguments, options, command definition, and
-environment — stored bare, never with a leading slash.
+environment.
 
 <a name="attributes"></a>
 ## Attributes
@@ -470,34 +476,32 @@ attribute usage through the optional `crustum/cakephp-attribute-resolver`
 package (a suggested dependency, never required). On CakePHP 5.4 the
 resolver package is the only source; native support lands with CakePHP
 6. Pick a configured scope, search and filter the snapshot, and open a
-row to query or inspect one result at a time — like the Views panel's
-lazy data. When the resolver is missing or unconfigured, the panel says
-so instead of showing an empty list.
+row to query or inspect one result at a time. When the resolver is missing
+or unconfigured, the panel says so instead of showing an empty list.
 
 <a name="authorization"></a>
 ## Authorization
 
 Authorization is the `cakephp/authorization` plugin (identity plus
 policies with `can<Action>` methods) together with `cakephp/authentication`
-for identity — and in many apps CakeDC Auth RBAC rules on top. The panel
+for identity, and in many apps CakeDC Auth RBAC rules on top. The panel
 records checks from both without changing any decision: the service
 decorator (installed by `DebugBarAuthorizationMiddleware` after the
 authorization middleware) reports every `can()`/`canResult()` with user,
 action, resource, result, and the resolved policy class, method, and
 source; CakeDC Auth vendor events (`Auth.Rbac.checked`,
 `Auth.Authorization.checked`) add role, matched permission rule, and
-reason. Resources keep class names, identifiers, and labels only — values
+reason. Resources keep class names, identifiers, and labels only. Values
 are never stored, and there is no result code, only the message.
 
-When a request is denied, filter to denied decisions and open the
-ability: the detail shows user, arguments, result, and the resolved
-policy method with its source — copy the `file:line` straight into the
-editor. A missing identity or wrong resource explains the result before
-any rule. An expected denial is healthy — it is a lead to inspect, not
-an instruction to grant access. Authorization answers whether
-the action was allowed; authentication context (identity, guard, route)
-lives in the Request panel. Verify with a repeat as the intended user
-and keep the denial when the rule correctly protects the action.
+When a request is denied, filter to denied decisions and open the ability.
+The detail shows user, arguments, result, and the resolved policy method with its source.
+Copy the `file:line` straight into the editor. A missing identity or wrong resource explains
+the result before any rule. An expected denial is healthy: it is a lead to inspect,
+not an instruction to grant access. Authorization answers whether the action was allowed,
+while authentication context (identity, guard, route) lives in the Request panel.
+Verify with a repeat as the intended user and keep the denial when the rule
+correctly protects the action.
 
 <a name="cache"></a>
 ## Cache
@@ -513,7 +517,7 @@ something.
 A high miss rate needs at least `minimum_cache_operations` reads (default
 `5`) with a miss rate at or above `high_cache_miss_rate` (default `0.8`).
 Confirm the keys should be warm, the store and TTLs are right, and no
-earlier flush or forget cleared them — a first request after a deliberate
+earlier flush or forget cleared them. A first request after a deliberate
 clear can validly miss everywhere. Keys follow the `key_policy`: `full`
 keeps exact keys for private local debugging, `hash` keeps stable hashes
 when matching operations is enough.
@@ -527,14 +531,14 @@ $second = Cache::remember($key, fn () => ['days' => 99]);
 
 The second read should hit and skip the producer. If both miss in a real
 app, compare key construction, store, TTL, and any earlier forget or
-flush — an array store is process-local and never survives into the next
+flush. An array store is process-local and never survives into the next
 request.
 
 <a name="deprecations"></a>
 ## Deprecations
 
-A static grouped list by origin (cake, app, plugins, vendor, other) —
-no filters by design. Each group is a future upgrade break: migrate the
+A static grouped list by origin (cake, app, plugins, vendor, other) and
+has no filters by design. Each group is a future upgrade break: migrate the
 flagged calls before the next major. The `deprecations.present` finding
 points here whenever the count is non-zero.
 
@@ -552,22 +556,22 @@ itself.
 ## Events
 
 Search dispatches, filter by source, and open a group for its Overview,
-Payload, and Source tabs — occurrences, sequence, per-listener
-registrations with duplicates surfaced, and shape-only payloads (field
-names plus types, never values). Tracking rides the manager's own event
-list; the true dispatch site is remembered per event. Synchronous
+Payload, and Source tabs The occurrences, sequence, per-listener
+registrations with duplicates surfaced, and shape-only payloads.
+Tracking rides the manager's own event list;
+the true dispatch site is remembered per event. Synchronous
 listeners of a non-stopped event all ran and count as completed; stopped
 propagation marks the group partial instead of guessing which listener
 ran.
 
 When one action causes duplicate work, separate the causes: several
 dispatches of the same event means repeated controller calls, model
-hooks, or retries dispatch it — open the retained source before changing
+hooks, or retries dispatch it. Open the retained source before changing
 a listener. One dispatch with a duplicate listener registration means the
 same callable was registered twice; keep one intended registration.
 Payload shape checks the contract (types, fields, counts); when the bug
 depends on a value that was not retained, read the application code or
-add a focused log line — MCP cannot recover an omitted value.
+add a focused log line.
 
 <a name="exceptions"></a>
 ## Exceptions
@@ -582,12 +586,12 @@ source context lines around the throwing frame.
 Status and exceptions answer different questions: the status tells how
 the response ended, Exceptions shows failures reported during the
 request. A caught exception that was never reported or recorded may not
-appear — follow the app's reporting path before treating absence as a
+appear. Follow the app's reporting path before treating absence as a
 collector failure. Begin where the application first enters the failing
 path; vendor frames stay available for deeper tracing. Follow causes
 toward the original failure, check nearby logs and timeline items for
 what happened immediately before, and after a fix confirm the behavior
-plus all error findings — removing a log message is not a fix.
+plus all error findings. Removing a log message is not a fix.
 
 <a name="findings"></a>
 ## Findings
@@ -603,7 +607,7 @@ into the evidence behind it.
 
 > [!NOTE]
 > A finding is a lead, not a verdict. Local data can be unusual for a
-> valid reason — open the source evidence, confirm the work is
+> valid reason: open the source evidence, confirm the work is
 > unexpected, and compare another request before changing code.
 
 | Rule | Severity | Fires when |
@@ -623,10 +627,9 @@ into the evidence behind it.
 
 The HTTP Client panel instruments every application
 `Cake\Http\Client` through the global `HttpClient.beforeSend` /
-`HttpClient.afterSend` events — no client-side changes needed. Each call
-opens Request/Response tabs with method, host, path, query, status,
-duration, bounded headers and bodies, plus copy buttons for the URL,
-either body, and a safe cURL (redacted values stay redacted in the
+`HttpClient.afterSend` events. Each call opens Request/Response tabs with method,
+host, path, query, status, duration, bounded headers and bodies, plus copy buttons
+for the URL, either body, and a safe cURL (redacted values stay redacted in the
 copy). Header values under sensitive names (`authorization`, `token`,
 `secret`, …) are masked at capture via `RedactionService::maskSensitive`,
 so stored rows never carry cleartext credentials. Requests that never
@@ -636,13 +639,13 @@ Slow means at or above `slow_http_request_ms` (default `250`).
 
 Distinguish completed responses from connection failures (no status,
 exception class instead), and remember the app may accept a non-2xx
-status — compare it against the code path and the remote contract, not
+status, compare it against the code path and the remote contract, not
 the number alone. Follow the first useful application frame into the
 service or wrapper that sent the call and inspect its timeout, retry
 policy, and payload handling; retries show as separate attempts in
 execution order. Repeat with a controlled remote response and confirm
 call count, status handling, fallback, and result before comparing
-duration — and never call a missing result a performance win.
+duration.
 
 <a name="log"></a>
 ## Logs
@@ -697,8 +700,7 @@ class WelcomePreview extends MailPreview
 Opening a preview never intercepts delivery; choose the intended local
 transport yourself. Bodies and attachments are bounded (metadata stays
 visible past the budget); only mail the request sent is captured, so use
-the exact request profile rather than the page around it. Notifications
-have no panel here — delivery belongs to a separate plugin.
+the exact request profile rather than the page around it.
 
 <a name="models"></a>
 ## Models
@@ -708,21 +710,20 @@ its Records and Source tabs: identifiers, changed fields, connection,
 table, timing, and the application source. Global `Model.*` listeners
 catch every table without app changes. Identifiers come from primary-key
 equality in the query, so `get()` and find-by-id render real identities
-while bare list queries stay unidentified — an honest gap, not a guess.
-Only shapes are stored: identifiers and truncated changed fields, never
-full rows.
+while bare list queries stay unidentified. Only shapes are stored:
+identifiers and truncated changed fields, never full rows.
 
 A large retrieval count is not automatically a problem. Check how many
 unique records loaded, whether one record repeats, and which source caused
 each group. Repeated retrievals point at relationship access in a loop,
-duplicated resource work, or several layers requesting the same model —
+duplicated resource work, or several layers requesting the same model:
 confirm the matching query shape in Queries (same fingerprint, varying
 bindings) before eager-loading with `contain()`, batching, or reusing the
 already-loaded instance. If the later code needs fresh database state,
 keep that requirement: fewer retrievals never justify stale data.
 
 An unexpected write may come from a behavior, event listener, or model
-hook rather than the controller line where the request began — compare the
+hook rather than the controller line where the request began. Compare the
 changed fields with the intended action. Verify records as well as
 counts: identifiers, preserved attributes and ordering, and the actual
 database values for a write, including whether its transaction committed.
@@ -775,7 +776,7 @@ identifiers. Each group is flagged:
   the classic per-row loop.
 
 > [!NOTE]
-> Likely N+1 is a heuristic. Repetition can be intentional — confirm the
+> Likely N+1 is a heuristic. Repetition can be intentional, confirm the
 > count scales with the collection and that eager loading preserves
 > behavior before changing anything.
 
@@ -786,7 +787,7 @@ expensive ones suggest planning, indexing, or locking. Keep the two costs
 separate: query time is only the time observed around database execution,
 not the full request.
 
-A CakePHP N+1 looks like this — one query per row in a loop:
+A CakePHP N+1 looks like one query per row in a loop:
 
 ```php
 foreach ($articles as $article) {
@@ -810,10 +811,10 @@ assertion (see Testing).
 Groups where `slow || repeated` need attention. Sort by Time, filter the
 list, and open a group for normalized SQL, per-execution rows with
 bindings and duration, the N+1 explanation, the call-site stack, and the
-EXPLAIN tab — copy the bound SQL straight from the detail when you need
+EXPLAIN tab copy the bound SQL straight from the detail when you need
 to reproduce the exact local case. Bindings follow the
 `query_bindings` policy: `full` keeps values, `safe` masks strings,
-`none` drops them — and `bindings_complete` tells the inspector whether
+`none` drops them, and `bindings_complete` tells the inspector whether
 the shown SQL is the whole story.
 
 The source location and short application stack are usually more useful
@@ -825,7 +826,7 @@ infrastructure, move down the retained application frames
 Begin, commit, and rollback markers (`inTransaction`,
 `isCommitOrRollback`) place SQL inside its transaction on that
 connection. A rollback explains why a captured write never became a
-lasting change — check the actual database result as well as the marker.
+lasting change. Check the actual database result as well as the marker.
 
 <a name="explain"></a>
 ### EXPLAIN
@@ -847,7 +848,7 @@ explained on the same connection it was captured on, never stored.
   `query_bindings` policy first.
 * The plan is requested when you open it. It is a current database
   action, not a measurement of the old execution, and its result is not
-  saved into the profile — do not expect it through MCP.
+  saved into the profile. Do not expect it through MCP.
 
 > [!NOTE]
 > EXPLAIN is evidence, not an automatic fix: a plan depends on the
@@ -865,7 +866,7 @@ The summary keeps the table count.
 <a name="timer"></a>
 ## Timer
 
-The Timer is a static read of framework phases — `Controller.*`,
+The Timer is a static read of framework phases like `Controller.*`,
 `View.*`, request and memory marks with a bar graph, summarized as
 `"<time> s / <memory>"` on the toolbar. No filters by design; phases
 read top to bottom. Custom spans join the same view with two calls:
@@ -887,12 +888,42 @@ stays phase-oriented.
 
 The Timeline panel has no collector of its own. At `saveData()` time,
 `TimelineBuilder` merges already-stored sibling data onto one millisecond
-scale: Timer framework phases, SqlLog queries, Log entries, and Cache
-operations, ordered by start offset. (Mail has no captured timestamps and
-stays out.) Each event carries `at`, `duration_ms`, `type`, `label`,
+scale. Timers, queries, logs, cache operations, HTTP requests, model
+operations, views, events, mail, exceptions, authorization checks and
+deprecations are ordered by start offset. Snapshots without event time
+(Request, Variables, Environment, Routes, Packages, Plugins, Validation,
+Attributes, Findings) stay out: there is no moment to place them on. Each event carries `at`, `duration_ms`, `type`, `label`,
 `panel`, `source`, and `ref` back to its inspector; the row stores
 `events` plus `retained`/`omitted` counts and the request window
 (`start_ms`/`end_ms`).
+
+Sources need no configuration. Every loaded panel implementing
+`Crustum\DebugBar\Panel\TimelineSourceInterface::timelineEvents()` appears
+on the waterfall in registry order with its own inspector link and filter
+label: by default the panel title and the shared title-to-key rule (so
+`SqlLog` opens `queries`, like everywhere else). A source may override
+either with the duck-typed `timelineLabel()` / `timelineInspectorKey()`
+methods. A disabled panel never loads and never reaches the waterfall.
+A throwing source is skipped with a `Log::warning` naming the alias.
+Waterfall assembly is toolbar-internal and never reported as
+a host-application finding.
+
+Every waterfall row carries its inspector row key as `ref` (`query-3`,
+`model-1`, `event-2`, `http-1`, `mail-0`, `log-4`, `cache-7`, `view-1`,
+`exception-1`, `authorization-3`, ...). The "Open inspector" jump selects
+that exact record instead of just opening the tab; rows without a
+selectable counterpart keep `ref: null` and open the tab. Each row also
+carries a jump icon right after the timestamp that opens the exact
+record in one click, without opening the preview first. Returning to the
+Timeline scrolls the previously selected row back into view: the heading
+"Timeline" button (shown only when the current inspector was opened from
+a waterfall row) returns to the list without reopening the preview,
+while the Timeline tab and the workspace Back restore the previous
+selection as before. A direct jump also anchors the row it started
+from, so jumping again from the list keeps the way back in place.
+Custom panels join the same contract for free: expose `timelineEvents()`
+with matching `ref` values and follow the `data-dk-<name>-entry` /
+`data-dk-<name>-key` row convention.
 
 The inspector pages through the stored list with cursor paging on the
 JSON endpoint (`cursor` over `events`, `has_more`/`matching_count`
@@ -903,8 +934,8 @@ showing a partial picture.
 
 Read work in execution order: the timeline shows whether expensive work
 is isolated, repeated, or waiting on another operation. Click a
-waterfall row for its detail — at, type, duration, source — and follow
-the Open-inspector link straight into the owning panel.
+waterfall row for its detail and follow the Open-inspector link straight
+into the owning panel.
 
 | Signal | Useful next inspector |
 |--------|----------------------|
@@ -914,7 +945,7 @@ the Open-inspector link straight into the owning panel.
 
 Know what the measurements mean: timed operations have durations while
 point events only show when something was observed, and related rows may
-overlap — adding every row does not produce exclusive request time. Local
+overlap. Adding every row does not produce exclusive request time. Local
 timings move with cold caches and machine load, so compare the same warm
 path before and after a change. The timeline is not a production latency
 monitor.
@@ -922,26 +953,26 @@ monitor.
 <a name="validation"></a>
 ## Validation
 
-Validation failures are handled responses, not crashes: the form stays
-on screen and the page may still return 200. The Validation panel walks
-the controller view vars on shutdown — entities recursively (with cycle
-and depth guards) plus plain forms — and flattens each to one row per
-field: field, message, bag (the view-var name), response status,
-redirect target, and failed rules. Display is static by design: stacked
-articles, no search or filter.
+Validation failures are handled responses, not crashes: the form stays on
+screen and the page may still return 200. The Validation panel walks the
+controller view vars on shutdown, entities recursively (with cycle and
+depth guards) plus plain forms, and flattens each to one row per field:
+field, message, bag (the view-var name), response status, redirect target,
+and failed rules. Display is static by design: stacked articles,
+no search or filter.
 
 Choose the submission profile (the POST, not the form page) and read bag,
 fields, messages, and rules. Keep the submitted shape when reproducing:
-a form and a JSON request can receive different responses to the same
-failure. After correcting the input, submit again and check the valid
-path continues — a lack of error rows alone does not prove the form
-saved. Test the failure and the valid path separately; thrown or
-reported failures belong to Exceptions and Logs.
+a form and a JSON request can receive different responses to the same failure.
+After correcting the input, submit again and check the valid path continues.
+A lack of error rows alone does not prove the form saved. Test the failure
+and the valid path separately. Thrown or reported failures belong to
+Exceptions and Logs.
 
 <a name="variables"></a>
 ## Variables
 
-Search the variable list, pick a row, and read its collapsible tree —
+Search the variable list, pick a row, and read its collapsible tree:
 large graphs stay usable because each variable loads its data lazily,
 with loading, empty, and error states plus Retry. Entities and forms in
 the list also contribute an errors map, but explicit failures belong to
@@ -951,7 +982,7 @@ Validation: open that panel for field, rule, and message rows.
 ## Views
 
 Search the render list, filter Application/All/Framework, and pick the
-occurrence that built the visible output — a template can render several
+occurrence that built the visible output. A template can render several
 times with different data. The detail keeps origin, passed values, and
 composers; the data itself loads lazily (`GET
 /debug-bar/panels/view-data?id=&render=N`) with loading and error states,
@@ -967,7 +998,7 @@ If the template prints `$journeyTitle`, seeing `title` in the retained
 vars points at the data-contract mismatch: align the key, reload, and
 check the heading. Bounded vars may hide values behind toggles or class
 labels; renderable objects are never executed to make a value. The panel
-records composition activity, not per-template render durations — use the
+records composition activity, not per-template render durations. Use the
 Timeline for measured work. Repeated partials are normal once per row;
 when one partial or data lookup runs more often than the output needs,
 check the parent loop and whether repeated view work also repeats SQL.
@@ -975,7 +1006,7 @@ check the parent loop and whether repeated view work also repeats SQL.
 <a name="agents"></a>
 ## Agents
 
-Agents read the same retained rows the browser shows — through a JSON
+Agents read the same retained rows the browser shows through a JSON
 API for quick scripts and through a local MCP server for coding agents.
 Both apply capture-time redaction and response bounds; neither invents
 missing evidence.
@@ -1004,7 +1035,7 @@ missing evidence.
 
 The local STDIO server runs on `crustum/mcp` (optional dependency) and
 registers as `Mcp.local['cake-debugbar']` only when that package is
-installed — without it the plugin loads and runs normally. Start it with:
+installed. Without it the plugin loads and runs normally. Start it with:
 
 ```bash
 bin/cake debug-bar mcp
@@ -1017,14 +1048,14 @@ as a plain tool error, never internals.
 
 | Tool | Reads |
 |------|-------|
-| `list-requests` | Recent summaries with duration, query count/time, warning flag, and per-panel counts. Filters: `method` (uppercased), `path` fragment (≤200 chars), `status` (100–599), `limit` (default 10, cap 50). No cursor — narrow the filters or raise the limit. |
-| `get-panel-data` | Any stored value by JSON Pointer. `request_id` (UUID, required), `path` (default `''` for the root — start at `/panels` for names, then follow returned paths), `cursor` (default 0), `limit` (default 10, capped by `mcp.max_items`). Oversized strings chunk with `omitted_due_to_bytes`. |
+| `list-requests` | Recent summaries with duration, query count/time, warning flag, and per-panel counts. Filters: `method` (uppercased), `path` fragment (≤200 chars), `status` (100–599), `limit` (default 10, cap 50). Cursor absence will narrow the filters or raise the limit. |
+| `get-panel-data` | Any stored value by JSON Pointer. `request_id` (UUID, required), `path` (default `''` for the root, start at `/panels` for names, then follow returned paths), `cursor` (default 0), `limit` (default 10, capped by `mcp.max_items`). Oversized strings chunk with `omitted_due_to_bytes`. |
 | `inspect-queries` | Query groups with the browser's grouping and flags. `filter`: `all`, `attention`, `repeated`, `slow`, `read`, `write` (default `all`); `search` (≤200 chars); `sort`: `execution` or `duration`; `cursor`/`limit` (default 5). |
 | `get-findings` | Stored findings: rule id, severity, panel, summary, why, location, next, action. Optional `severity` keeps that level and above. |
 
 Bounds come from `mcp.max_items` (default `50`) and `mcp.max_bytes`
 (default `100000`). Follow `next_cursor` with the same tool, path, and
-filters — and remember a response limit is not capture truncation:
+filters, and remember a response limit is not capture truncation:
 another page cannot recover values omitted before storage.
 
 Debug one request with an agent: reproduce the action and keep its exact
@@ -1037,7 +1068,7 @@ id expired, reproduce and capture a new one.
 <a name="custom-panels"></a>
 ## Custom Panels
 
-One class plus one element is a working panel — no build step. Place the
+Minimal panel need one class plus one element. Place the
 class in `src/Panel` (filename matches the class, e.g. `MyCustomPanel`
 in `src/Panel/MyCustomPanel.php`):
 
@@ -1085,7 +1116,7 @@ page styles never reach in, and panel styles never leak out.
 
 Behavior comes from hooks, not panel JavaScript. The shell owns one
 delegated click listener; a panel opts into each interaction by marking
-up its element. Nothing needs registering — any third-party panel
+up its element. Nothing needs registering, any third-party panel
 follows this shape:
 
 * **Row select** — give each row `data-dk-<ns>-entry` plus
@@ -1094,7 +1125,7 @@ follows this shape:
   one matching detail, paints code blocks, and drills list into detail
   with Back support inside `focus` workspaces. Scope is the closest
   `[data-dk-<ns>-panel]`, then the closest inspector panel, then the
-  root — third-party panels coexist without touching shell code. The
+  root: third-party panels coexist without touching shell code. The
   bare `data-dk-entry` / `data-dk-key` / `data-dk-detail` trio works
   the same when no namespace is needed. Rows owned by dedicated
   modules (`exception`, `view`, `variable`) keep their lazy loaders
@@ -1124,7 +1155,7 @@ follows this shape:
   panel, then root), joined with newlines.
 * **Panel scripts** — when markup hooks are not enough (a custom
   endpoint owned by the panel), ship a vanilla script with the plugin and
-  declare it once in the element — no host layout changes, no shell edits:
+  declare it once in the element, no host layout changes, no shell edits:
 ```html
 <script type="application/json" data-dk-panel-scripts>["/my-plugin/js/my_panel.js"]</script>
 ```
@@ -1144,7 +1175,7 @@ Capture data the Variables way instead of hand-rolling normalization:
 objects (entities, dates, throwables) expandable instead of collapsing
 them to bare class names, masks sensitive leaves, and returns JSON-safe
 plain arrays ready for `ui/debug_tree`. `VarExporter::flatten($node)`
-does the same for already-exported node trees. Never throws — strange
+does the same for already-exported node trees. Never throws, so strange
 values collapse to a scalar marker instead of breaking capture.
 
 <a name="cli"></a>

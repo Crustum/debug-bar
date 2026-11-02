@@ -1,4 +1,5 @@
 import { DEFAULT_INSPECTOR, sanitizeInspectorKey } from './navigation.js';
+import { scrollRowIntoView } from './boot/panels.js';
 
 export const INSPECTOR_SKELETON_DELAY = 200;
 export const INSPECTOR_PANEL_ATTRIBUTE = 'data-dk-inspector-panel';
@@ -30,6 +31,38 @@ export function panelKeyOf(panel) {
       : null;
 
   return typeof attribute === 'string' && attribute !== '' ? attribute : null;
+}
+
+/**
+ * Scrolls the selected row of the visible inspector into view.
+ *
+ * Inspector sections share one scrollable container, so switching tabs
+ * would otherwise leave the scroll wherever the previous tab was.
+ * Anchoring on the pressed row (rather than a saved pixel offset) always
+ * lands on meaningful content, including a timeline round trip.
+ *
+ * @param {Array<object>} panels Inspector sections.
+ * @param {string|null} visible Visible inspector key.
+ * @return void
+ */
+function revealSelectedRow(panels, visible) {
+  if (!visible) {
+    return;
+  }
+  try {
+    for (const panel of panels ?? []) {
+      if (panelKeyOf(panel) !== visible) {
+        continue;
+      }
+      const row =
+        panel && typeof panel.querySelector === 'function'
+          ? panel.querySelector('[aria-pressed="true"]')
+          : null;
+      scrollRowIntoView(row);
+
+      return;
+    }
+  } catch (error) {}
 }
 
 function readPanelId(summary, key) {
@@ -124,11 +157,12 @@ export function createInspectorPart(context = {}) {
         if (key === null) continue;
         panel.hidden = key !== visible;
       }
+      revealSelectedRow(panels, visible);
 
       return visible;
     },
 
-    openInspector(key = null, returnFocus = undefined, dialog = null) {
+    openInspector(key = null, returnFocus = undefined, dialog = null, options = null) {
       const shellBrowser = readBrowser(this);
       const target = sanitizeInspectorKey(key ?? this.selected, readKeys(this));
       if (this.inspectorOpen !== true) {
@@ -139,12 +173,16 @@ export function createInspectorPart(context = {}) {
       }
       this.inspectorOpen = true;
       if (typeof this.selectInspector === 'function')
-        this.selectInspector(target);
+        this.selectInspector(target, options ?? undefined);
       else this.selected = target;
       paint(this, () => {
         const heading =
           dialog?.querySelector?.(INSPECTOR_HEADING_SELECTOR) ?? null;
-        (heading ?? dialog)?.focus?.();
+        try {
+          (heading ?? dialog)?.focus?.({ preventScroll: true });
+        } catch (error) {
+          (heading ?? dialog)?.focus?.();
+        }
       });
 
       return target;

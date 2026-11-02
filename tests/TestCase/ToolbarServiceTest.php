@@ -82,7 +82,7 @@ class ToolbarServiceTest extends TestCase
      */
     public function testLoadPanels(): void
     {
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $this->assertContains('SqlLog', $bar->loadedPanels());
@@ -117,7 +117,7 @@ class ToolbarServiceTest extends TestCase
     public function testInitializePanels(): void
     {
         Log::drop('debug_bar_log_panel');
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $this->assertNull(Log::getConfig('debug_bar_log_panel'));
@@ -281,7 +281,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '<html><title>test</title><body><p>some text</p></body>',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $row = $bar->saveData($request, $response);
@@ -329,7 +329,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '<html><title>test</title><body><p>some text</p></body>',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $row = $bar->saveData($request, $response);
@@ -356,7 +356,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '<html><title>test</title><body><p>some text</p></body>',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $row = $bar->saveData($request, $response);
@@ -434,7 +434,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '{"some":"json"}',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         $row = $bar->saveData($request, $response);
@@ -567,7 +567,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '<html><title>test</title><body><p>some text</p></body>',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
 
         // Create a panel with unserializable data
@@ -620,7 +620,7 @@ class ToolbarServiceTest extends TestCase
             'body' => '<html><title>test</title><body><p>some text</p></body>',
         ]);
 
-        $bar = new ToolbarService($this->events, []);
+        $bar = new ToolbarService($this->events, (array)Configure::read('DebugBar'));
         $bar->loadPanels();
         $bar->registry()->load('Crustum/DebugBar.TestApp\Panel\ThrowingDataPanel', [
             'className' => ThrowingDataPanel::class,

@@ -12,7 +12,9 @@ use Cake\Event\EventManager;
 use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\Table;
 use Crustum\DebugBar\DebugPanel;
+use Crustum\DebugBar\DebugTimer;
 use Crustum\DebugBar\Service\CallsiteCapture;
+use Crustum\DebugBar\Service\IgnoredOperations;
 use Throwable;
 
 /**
@@ -26,7 +28,7 @@ use Throwable;
  * shapes reach the stored row — identifiers and truncated changed fields,
  * never full rows. The inbox drains on `data()` for workers.
  */
-class ModelsPanel extends DebugPanel
+class ModelsPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * Captured operations.
@@ -58,6 +60,12 @@ class ModelsPanel extends DebugPanel
      */
     public static function record(array $operation): void
     {
+        // Sibling observers stay out of the Models panel (mirrors
+        // Speculum's own ignore_namespaces for DebugBar).
+        if (IgnoredOperations::isIgnoredModel((string)($operation['class'] ?? ''))) {
+            return;
+        }
+
         $source = (string)($operation['source'] ?? '');
         static::$inbox[] = [
             'op' => (string)($operation['op'] ?? ''),
@@ -225,7 +233,7 @@ class ModelsPanel extends DebugPanel
     {
         /** @var array<string, array<string, mixed>> $groups */
         $groups = [];
-        $requestStart = isset($_SERVER['REQUEST_TIME_FLOAT']) ? (float)$_SERVER['REQUEST_TIME_FLOAT'] : null;
+        $requestStart = DebugTimer::requestStartTime() ?: null;
         foreach (static::$inbox as $operation) {
             $operation = (array)$operation;
             $class = (string)($operation['class'] ?? '');
@@ -378,6 +386,44 @@ class ModelsPanel extends DebugPanel
     public function summary(): string
     {
         return (string)count(static::$inbox);
+    }
+
+    /**
+     * Builds ORM operation rows for the waterfall.
+     *
+     * Point events: the capture records when each operation started, but
+     * not how long the ORM layer itself took, so duration stays zero.
+     *
+     * @param array<string, mixed> $data Models panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        $events = [];
+        foreach (array_values((array)($data['groups'] ?? [])) as $position => $group) {
+            $group = (array)$group;
+            foreach (array_values((array)($group['operations'] ?? [])) as $operation) {
+                $operation = (array)$operation;
+                $at = (float)($operation['at'] ?? 0);
+                $class = (string)($operation['class'] ?? '');
+                $name = $class !== '' ? $this->shortName($class) : (string)($operation['table'] ?? '');
+                $op = (string)($operation['op'] ?? '');
+                $identifier = (string)($operation['identifier'] ?? '');
+                $label = trim($op . ' ' . $name . ($identifier !== '' ? ' ' . $identifier : ''));
+                $events[] = [
+                    'at' => $at > 0 ? max(0.0, ($at - $requestStart) * 1000) : 0.0,
+                    'duration_ms' => 0.0,
+                    'type' => 'model',
+                    'label' => mb_strimwidth($label !== '' ? $label : $name, 0, 120, '…'),
+                    'panel' => 'models',
+                    'source' => null,
+                    'ref' => 'model-' . ($position + 1),
+                ];
+            }
+        }
+
+        return $events;
     }
 
     /**

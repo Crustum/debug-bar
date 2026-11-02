@@ -42,6 +42,34 @@ return [
         'safeTld' => [],
 
         /**
+         * List of enabled panels.
+         */
+        'panels' => [
+            'Crustum/DebugBar.Request' => true,
+            'Crustum/DebugBar.Attributes' => true,
+            'Crustum/DebugBar.Cache' => true,
+            'Crustum/DebugBar.Findings' => true,
+            'Crustum/DebugBar.Timeline' => true,
+            'Crustum/DebugBar.SqlLog' => true,
+            'Crustum/DebugBar.Timer' => true,
+            'Crustum/DebugBar.Log' => true,
+            'Crustum/DebugBar.Variables' => true,
+            'Crustum/DebugBar.Environment' => true,
+            'Crustum/DebugBar.Routes' => true,
+            'Crustum/DebugBar.Packages' => true,
+            'Crustum/DebugBar.Mail' => true,
+            'Crustum/DebugBar.Deprecations' => true,
+            'Crustum/DebugBar.Plugins' => true,
+            'Crustum/DebugBar.Validation' => true,
+            'Crustum/DebugBar.HttpClient' => true,
+            'Crustum/DebugBar.Events' => true,
+            'Crustum/DebugBar.Authorization' => true,
+            'Crustum/DebugBar.Models' => true,
+            'Crustum/DebugBar.Exceptions' => true,
+            'Crustum/DebugBar.Views' => true,
+        ],
+
+        /**
          * PCRE pattern for request paths that must never be recorded.
          * Applies to 2xx responses only. Null disables it.
          */
@@ -54,6 +82,23 @@ return [
          * `ignorePathsPattern` (regex, 2xx only) these apply to every status.
          */
         'ignored_url_masks' => [],
+
+        /**
+         * Table name prefixes never recorded by the SQL log
+         * (case-insensitive, e.g. `speculum_`). Monitoring tools must
+         * not record each other: Speculum writes entries and vardumps
+         * through `speculum_*` tables, and a single post can bloat one
+         * request by megabytes of interpolated SQL. Queries without a
+         * recognizable table (BEGIN/COMMIT) are always kept.
+         */
+        'ignored_query_tables' => ['speculum_'],
+
+        /**
+         * Model class namespaces never recorded by the Models panel.
+         * Mirrors Speculum's own `ignore_namespaces` for DebugBar, so
+         * Speculum's bookkeeping models never pollute the panel.
+         */
+        'ignored_model_namespaces' => ['Crustum\\Speculum\\'],
 
         /**
          * Skip authorization checks on the toolbar endpoints.

@@ -5,6 +5,7 @@ namespace Crustum\DebugBar\Database\Log;
 
 use Cake\Database\Log\LoggedQuery;
 use Crustum\DebugBar\Service\AppPath;
+use Crustum\DebugBar\Service\IgnoredOperations;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -173,11 +174,18 @@ class DebugLog extends AbstractLogger
             return;
         }
 
+        // Observer traffic stays out of the SQL log (but still reaches
+        // the decorated host logger below untouched): Speculum writes
+        // its entries through `speculum_*` tables on this connection.
+        $sql = (string)$query;
+        if (IgnoredOperations::isIgnoredQuery($sql)) {
+            return;
+        }
+
         $data = $query->jsonSerialize();
 
         $this->totalTime += $data['took'];
 
-        $sql = (string)$query;
         $isBegin = $sql === 'BEGIN';
         $isCommitOrRollback = $sql === 'COMMIT' || $sql === 'ROLLBACK';
 

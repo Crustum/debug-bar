@@ -79,6 +79,9 @@ class QueryAnalyzer
     /**
      * Formats milliseconds like the shell `duration.js` helper.
      *
+     * Seconds below 10 keep millisecond precision (`9.12 s`); larger
+     * units round to whole values (`45 s`, `1 h 1 min 15 s`).
+     *
      * @param float $ms Duration in milliseconds.
      * @return string Formatted duration.
      */
@@ -91,21 +94,46 @@ class QueryAnalyzer
         if ($ms >= 3600000) {
             $hours = (int)floor($ms / 3600000);
             $minutes = (int)floor(($ms - $hours * 3600000) / 60000);
-            if ($minutes > 0) {
-                return $hours . ' h ' . $minutes . ' min';
+            $seconds = (int)round(($ms - $hours * 3600000 - $minutes * 60000) / 1000);
+            if ($seconds >= 60) {
+                $seconds -= 60;
+                $minutes++;
             }
 
-            return $hours . ' h';
+            if ($minutes >= 60) {
+                $minutes -= 60;
+                $hours++;
+            }
+
+            $parts = [$hours . ' h'];
+            if ($minutes > 0) {
+                $parts[] = $minutes . ' min';
+            }
+
+            if ($seconds > 0) {
+                $parts[] = $seconds . ' s';
+            }
+
+            return implode(' ', $parts);
         }
 
         if ($ms >= 60000) {
             $minutes = (int)floor($ms / 60000);
             $seconds = (int)round(($ms - $minutes * 60000) / 1000);
+            if ($seconds >= 60) {
+                $seconds -= 60;
+                $minutes++;
+            }
+
             if ($seconds > 0) {
                 return $minutes . ' min ' . $seconds . ' s';
             }
 
             return $minutes . ' min';
+        }
+
+        if ($ms >= 10000) {
+            return (int)round($ms / 1000) . ' s';
         }
 
         if ($ms >= 1000) {

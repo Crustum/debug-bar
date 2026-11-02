@@ -223,9 +223,10 @@ export function swapRequestPanels(ctx, id) {
     }
   }
   if (url === null) {
-    return;
+    return null;
   }
-  fetch(url, { headers: { Accept: 'application/json' } })
+
+  return fetch(url, { headers: { Accept: 'application/json' } })
     .then(function (response) {
       if (!response || response.ok !== true) {
         throw new Error('panels');
@@ -243,6 +244,53 @@ export function swapRequestPanels(ctx, id) {
       } catch (error) {}
       window.location.assign(toolbarUrl);
     });
+}
+
+/**
+ * Marks every request trigger busy while a request switch is in flight.
+ *
+ * Large requests swap megabytes of panel HTML with no progress feedback
+ * otherwise: the picker closes on click and the shell looks idle until
+ * the panels land. Triggers clear in `settleSwapRequest`.
+ *
+ * @param {object} ctx Shell context.
+ * @param {object|null} target Clicked option, if any.
+ * @return void
+ */
+export function markSwapRequestBusy(ctx, target) {
+  try {
+    ctx.root
+      .querySelectorAll('[data-dk-request-trigger]')
+      .forEach(function (trigger) {
+        trigger.setAttribute('aria-busy', 'true');
+      });
+  } catch (error) {}
+  try {
+    if (target && typeof target.setAttribute === 'function') {
+      target.setAttribute('aria-busy', 'true');
+    }
+  } catch (error) {}
+}
+
+/**
+ * Clears the request-switch busy state on every trigger and option.
+ *
+ * @param {object} ctx Shell context.
+ * @return void
+ */
+export function settleSwapRequest(ctx) {
+  try {
+    ctx.root
+      .querySelectorAll('[data-dk-request-trigger]')
+      .forEach(function (element) {
+        element.removeAttribute('aria-busy');
+      });
+    ctx.root
+      .querySelectorAll('[data-dk-request-option]')
+      .forEach(function (element) {
+        element.removeAttribute('aria-busy');
+      });
+  } catch (error) {}
 }
 
 function applyRequestPanels(ctx, payload) {

@@ -148,6 +148,11 @@ Plugin::getCollection()->add(new DebugBarPlugin([
     'routes' => true,
 ]));
 
+if (!Configure::check('DebugBar')) {
+    $debugBarDefaults = require dirname(__DIR__) . DS . 'config' . DS . 'debug_bar.php';
+    Configure::write('DebugBar', $debugBarDefaults['DebugBar']);
+}
+
 $schemaLoader = new SchemaLoader();
 $schemaLoader->loadInternalFile(TESTS . 'schema.php');
 $schemaLoader->loadInternalFile(TESTS . 'schema.php', 'test_debug_bar');

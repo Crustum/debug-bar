@@ -445,6 +445,42 @@ describe('picker request triggers', () => {
 
     assert.equal(handlePickerClick(option, ctx), true);
   });
+
+  it('marks triggers busy while a request swap is in flight', async () => {
+    const { ctx, root } = shellCtx();
+    const trigger = new FakeElement('button', {
+      'data-dk-request-trigger': 'toolbar',
+    });
+    root.appendChild(trigger);
+    const option = new FakeElement('button', {
+      'data-dk-request-option': 'r9',
+    });
+    root.appendChild(option);
+    let releaseSelect;
+    ctx.shell.selectRequest = () =>
+      new Promise((resolve) => {
+        releaseSelect = () => resolve({ id: 'r9' });
+      });
+    let releaseSwap;
+    ctx.swapRequestPanels = () =>
+      new Promise((resolve) => {
+        releaseSwap = () => resolve();
+      });
+    handlePickerClick(option, ctx);
+    await flush(2);
+
+    assert.equal(trigger.getAttribute('aria-busy'), 'true');
+    assert.equal(option.getAttribute('aria-busy'), 'true');
+
+    releaseSelect();
+    await flush(6);
+    assert.equal(trigger.getAttribute('aria-busy'), 'true');
+
+    releaseSwap();
+    await flush(4);
+    assert.equal(trigger.hasAttribute('aria-busy'), false);
+    assert.equal(option.hasAttribute('aria-busy'), false);
+  });
 });
 
 describe('picker theme and mobile menus', () => {

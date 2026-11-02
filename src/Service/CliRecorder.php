@@ -51,6 +51,17 @@ class CliRecorder
     protected static string $method = 'CLI';
 
     /**
+     * Start of the running unit of work as microtime(true).
+     *
+     * Long-lived workers boot once but run many jobs: the waterfall base
+     * must be the job start, not the process start, so every `open()`
+     * restamps it and `finish()` carries it into the synthetic request.
+     *
+     * @var float
+     */
+    protected static float $started = 0.0;
+
+    /**
      * Resets process state (tests).
      *
      * @return void
@@ -61,6 +72,7 @@ class CliRecorder
         static::$available = null;
         static::$url = '';
         static::$method = 'CLI';
+        static::$started = 0.0;
     }
 
     /**
@@ -97,6 +109,7 @@ class CliRecorder
             }
 
             static::clearInboxes($service);
+            static::$started = microtime(true);
 
             static::$url = $url;
             static::$method = $method;
@@ -155,6 +168,7 @@ class CliRecorder
                 'environment' => [
                     'REQUEST_METHOD' => static::$method,
                     'REQUEST_TIME' => time(),
+                    'REQUEST_TIME_FLOAT' => static::$started > 0 ? static::$started : microtime(true),
                 ],
             ]);
             $service->saveData($request, new Response(['status' => $statusCode]));

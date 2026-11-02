@@ -13,7 +13,7 @@ use Crustum\DebugBar\DebugPanel;
  *
  * @ported-from \DebugKit\Panel\DeprecationsPanel
  */
-class DeprecationsPanel extends DebugPanel
+class DeprecationsPanel extends DebugPanel implements TimelineSourceInterface
 {
     /**
      * The list of depreated errors.
@@ -55,6 +55,7 @@ class DeprecationsPanel extends DebugPanel
                 'file' => $file,
                 'line' => $line,
                 'message' => $error['message'],
+                'at' => (float)($error['at'] ?? 0),
             ];
 
             $pluginName = $this->debug->getPluginName($file);
@@ -96,6 +97,7 @@ class DeprecationsPanel extends DebugPanel
      */
     public static function addDeprecatedError(array $error): void
     {
+        $error['at'] = microtime(true);
         static::$deprecatedErrors[] = $error;
     }
 
@@ -157,5 +159,67 @@ class DeprecationsPanel extends DebugPanel
     public function shutdown(EventInterface $event): void
     {
         $this->data = $this->prepare();
+    }
+
+    /**
+     * Builds deprecation rows for the waterfall.
+     *
+     * The prepared data groups rows by origin, so the walk descends one
+     * level: anything carrying a message is one event.
+     *
+     * @param array<string, mixed> $data Deprecations panel data.
+     * @param float $requestStart Request start as microtime(true).
+     * @return list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}>
+     */
+    public function timelineEvents(array $data, float $requestStart): array
+    {
+        /** @var list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}> $events */
+        $events = [];
+        foreach ($data as $group) {
+            foreach (is_array($group) ? $group : [] as $key => $row) {
+                if (is_string($key) && is_array($row) && !isset($row['message'])) {
+                    foreach (array_values($row) as $nested) {
+                        $this->collectDeprecationEvent((array)$nested, $requestStart, $events);
+                    }
+
+                    continue;
+                }
+
+                $this->collectDeprecationEvent((array)$row, $requestStart, $events);
+            }
+        }
+
+        return $events;
+    }
+
+    /**
+     * Appends one deprecation row to the waterfall list.
+     *
+     * @param array<string, mixed> $row Prepared error row.
+     * @param float $requestStart Request start as microtime(true).
+     * @param list<array{at: float, duration_ms: float, type: string, label: string, panel: string, source: array{file: string, line: int}|null, ref: mixed}> $events Collected rows.
+     * @return void
+     */
+    protected function collectDeprecationEvent(array $row, float $requestStart, array &$events): void
+    {
+        if (!isset($row['message'])) {
+            return;
+        }
+
+        $at = (float)($row['at'] ?? 0);
+        if ($at <= 0) {
+            return;
+        }
+
+        $file = (string)($row['file'] ?? '');
+        $events[] = [
+            'at' => max(0.0, ($at - $requestStart) * 1000),
+            'duration_ms' => 0.0,
+            'type' => 'deprecation',
+            'label' => mb_strimwidth((string)$row['message'], 0, 120, '…'),
+            'panel' => 'deprecations',
+            'source' => $file !== '' ? ['file' => $file, 'line' => (int)($row['line'] ?? 0)] : null,
+            'ref' => null,
+        ];
     }
 }
