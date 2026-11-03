@@ -4,7 +4,8 @@ The **DebugBar** plugin provides a debugging toolbar and left-side inspector for
 
 The shell is dependency-free (vanilla ES modules, no jQuery, no Livewire) with a request-switcher for recent requests, and read-only MCP tools let coding agents inspect the same captured data. Any plugin can add a panel with one `DebugPanel` subclass and one template element.
 
-> **Warning:** DebugBar is only intended for single-user local development
+> [!WARNING]
+> DebugBar is only intended for single-user local development
 > environments. It captures configuration data, environment variables, and
 > SQL bindings — keep it out of shared development environments, staging,
 > or any place where that data must stay hidden.
