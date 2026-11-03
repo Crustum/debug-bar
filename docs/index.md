@@ -77,7 +77,8 @@ request in the toolbar, read the Queries panel for the repeated shape, follow
 the N+1 explanation to the application call site, and confirm the fix by
 comparing the query count on the next request.
 
-> **Warning:** DebugBar is only intended for single-user local development
+> [!WARNING]
+> DebugBar is only intended for single-user local development
 > environments. It captures configuration data, environment variables, and
 > SQL bindings into the SQLite store. Avoid shared development
 > environments, staging, or anything where that data must stay hidden.
